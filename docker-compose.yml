@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  predictive-maintenance:
+    build: .
+    container_name: predictive-maintenance-app
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models
+      - ./notebooks:/app/notebooks
+    networks:
+      - predictive-net
+
+networks:
+  predictive-net:
+    driver: bridge
