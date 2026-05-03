@@ -10,13 +10,14 @@ RUTA_JSON = os.path.join("models", "tree_model.json")
 RUTA_WORKER = os.path.join("src", "worker.py")
 RUTA_PRODUCTOR = os.path.join("src", "productor.py")
 RUTA_BORRADO = os.path.join("src", "borrar_datos.py")
+HOST_REDIS = os.getenv('REDIS_HOST', 'localhost')
 
 def preparar_base_datos():
     """Inyecta el modelo desde el JSON a Redis"""
     print("[Fase 1] Configurando Base de Datos Redis...")
 
     try:
-        cliente = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        cliente = redis.Redis(host=HOST_REDIS, port=6379, decode_responses=True)
         cliente.ping()
         
         # Lee el archivo JSON estático
