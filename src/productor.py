@@ -1,6 +1,7 @@
 import redis
 import time
 import pandas as pd
+import os
 
 host_redis = os.getenv('REDIS_HOST', 'localhost')
 

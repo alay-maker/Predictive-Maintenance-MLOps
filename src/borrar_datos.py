@@ -1,9 +1,12 @@
 import redis
 import sys
+import os
+
+host_redis = os.getenv('REDIS_HOST', 'localhost')
 
 try:
     # Conecta a la base de datos
-    cliente_redis = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    cliente_redis = redis.Redis(host=host_redis, port=6379, db=0, decode_responses=True)
     cliente_redis.ping()
     
     pipe = cliente_redis.pipeline()

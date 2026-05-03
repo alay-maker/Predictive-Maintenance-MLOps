@@ -2,6 +2,7 @@ import redis
 import time
 import sys
 import json
+import os
 
 host_redis = os.getenv('REDIS_HOST', 'localhost')
 
