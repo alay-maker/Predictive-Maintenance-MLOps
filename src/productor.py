@@ -2,10 +2,11 @@ import redis
 import time
 import pandas as pd
 
+host_redis = os.getenv('REDIS_HOST', 'localhost')
 
 # Conecta con el servidor Redis
 
-cliente_redis = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+cliente_redis = redis.Redis(host=host_redis, port=6379, db=0, decode_responses=True)
 print(f"[PRODUCTOR]: Conectado a servidor Redis. {cliente_redis.ping()}")
 
 # Carga datos reservados durante el proceso de entrenamiento
