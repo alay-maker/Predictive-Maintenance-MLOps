@@ -28,7 +28,7 @@ try:
     
     print("\nEntorno de pruebas reiniciado con éxito")
     
-    # cliente_redis.flushdb()
+    # cliente_redis.flushdb().
     # print("FLUSHDB EJECUTADO: Base de datos completamente vacía.")
 
 except redis.ConnectionError:
