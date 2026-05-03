@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # SERVICIO 1: La base de datos (oficial, cero configuración)
+  # 1. Base de datos (Imagen oficial de Redis, sin configurar nada a mano)
   redis-db:
     image: redis:7-alpine
     container_name: redis-server
@@ -10,32 +10,48 @@ services:
     networks:
       - predictive-net
 
-  # SERVICIO 2: El Productor (Inyecta datos)
+  # 2. Servicio de inicialización (Carga el modelo JSON en Redis y se apaga)
+  setup-redis:
+    build: .
+    container_name: python-setup
+    command: python src/setup_redis.py
+    depends_on:
+      redis-db:
+        condition: service_started
+    environment:
+      - REDIS_HOST=redis-db
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models
+    networks:
+      - predictive-net
+
+  # 3. El Productor (Inyecta los datos de los sensores)
   productor:
     build: .
     container_name: python-productor
     command: python src/productor.py
     depends_on:
-      - redis-db
+      setup-redis:
+        condition: service_completed_successfully
     environment:
-      - REDIS_HOST=redis-db  # <--- Apunta al nombre del servicio de arriba
-      - REDIS_PORT=6379
+      - REDIS_HOST=redis-db
     volumes:
       - ./src:/app/src
       - ./data:/app/data
     networks:
       - predictive-net
 
-  # SERVICIO 3: El Worker (Lee datos e infiere)
+  # 4. El Worker (Motor de inferencia)
   worker:
     build: .
     container_name: python-worker
     command: python src/worker.py worker_docker
     depends_on:
-      - redis-db
+      setup-redis:
+        condition: service_completed_successfully
     environment:
       - REDIS_HOST=redis-db
-      - REDIS_PORT=6379
     volumes:
       - ./src:/app/src
       - ./models:/app/models

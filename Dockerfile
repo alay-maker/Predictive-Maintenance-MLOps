@@ -4,12 +4,12 @@ FROM python:3.11-slim
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements.txt e instalar dependencias
+# Copiar el archivo de dependencias e instalarlas
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo el código del proyecto
+# Copiar todo el código del proyecto al contenedor
 COPY . .
 
-# (Opcional) Comando por defecto por si se levanta el contenedor solo
+# Comando por defecto (es sobreescrito por el docker-compose)
 CMD ["python", "--version"]
