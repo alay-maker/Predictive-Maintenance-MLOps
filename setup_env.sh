@@ -19,7 +19,7 @@ else
     echo "✅ Terraform ya está instalado."
 fi
 
-# 3. Inicia sesión en Azure usando código de dispositivo (seguro para Codespaces)
+# 3. Inicia sesión en Azure usando código de dispositivo
 echo "🔑 Abriendo conexión con Azure..."
 az login --use-device-code
 

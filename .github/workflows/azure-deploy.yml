@@ -7,7 +7,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # FASE 1: INTEGRACIÓN CONTINUA (CI) - Tests y Cobertura
   test:
     runs-on: ubuntu-latest
     steps:
@@ -25,13 +24,11 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Ejecutar Tests con Cobertura >= 70%
-        # Esto fallará automáticamente si la cobertura baja del 70%
         run: |
           pytest tests/ --cov=src --cov-fail-under=70 
 
-  # FASE 2: DESPLIEGUE CONTINUO (CD) - Enviar al servidor Terraform
   deploy:
-    needs: test # Solo se ejecuta si los tests de arriba aprueban
+    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
@@ -39,7 +36,6 @@ jobs:
       - name: Descargar código
         uses: actions/checkout@v4
 
-      # Copiamos los archivos al servidor de Azure de forma segura
       - name: Copiar archivos al servidor
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -49,7 +45,6 @@ jobs:
           source: "."
           target: "/home/adminuser/predictive-maintenance"
 
-      # Entramos al servidor y levantamos la arquitectura Docker Compose
       - name: Desplegar Microservicios en Azure
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -58,6 +53,5 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             cd /home/adminuser/predictive-maintenance
-            # Apagamos contenedores viejos y levantamos los nuevos en segundo plano (-d)
             sudo docker-compose down
             sudo docker-compose up --build -d
