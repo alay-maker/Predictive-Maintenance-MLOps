@@ -1,18 +1,44 @@
 version: '3.8'
 
 services:
-  predictive-maintenance:
-    build: .
-    container_name: predictive-maintenance-app
+  # SERVICIO 1: La base de datos (oficial, cero configuración)
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis-server
     ports:
       - "6379:6379"
+    networks:
+      - predictive-net
+
+  # SERVICIO 2: El Productor (Inyecta datos)
+  productor:
+    build: .
+    container_name: python-productor
+    command: python src/productor.py
+    depends_on:
+      - redis-db
     environment:
-      - REDIS_HOST=localhost
+      - REDIS_HOST=redis-db  # <--- Apunta al nombre del servicio de arriba
+      - REDIS_PORT=6379
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    networks:
+      - predictive-net
+
+  # SERVICIO 3: El Worker (Lee datos e infiere)
+  worker:
+    build: .
+    container_name: python-worker
+    command: python src/worker.py worker_docker
+    depends_on:
+      - redis-db
+    environment:
+      - REDIS_HOST=redis-db
       - REDIS_PORT=6379
     volumes:
       - ./src:/app/src
       - ./models:/app/models
-      - ./notebooks:/app/notebooks
     networks:
       - predictive-net
 
