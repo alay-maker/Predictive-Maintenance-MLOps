@@ -48,7 +48,7 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           # MEJORA: Solo copiamos lo necesario para que el contenedor funcione.
           # Esto evita subir gigas de historial de .git o carpetas de caché local.
-          source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt"
+          source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt,.dockerignore"
           target: "/home/adminuser/predictive-maintenance"
 
       - name: Desplegar Microservicios en Azure (Zero-Downtime)
