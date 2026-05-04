@@ -24,6 +24,8 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Ejecutar Tests con Cobertura >= 70%
+        env:
+          PYTHONPATH: .
         run: |
           pytest tests/ --cov=src --cov-fail-under=70 
 
