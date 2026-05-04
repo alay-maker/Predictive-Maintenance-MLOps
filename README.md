@@ -49,27 +49,28 @@ This project implements a **real-time predictive maintenance system** for indust
 ### System Design
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Predictive Maintenance System            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌──────────────┐    ┌─────────────────┐    ┌──────────────┐   │
-│  │  Productor   │───▶│  Redis Streams  │◀───│   Workers    │   │
-│  │  (Producer)  │    │   (Broker/DB)   │    │ (Classifiers)│   │
-│  └──────────────┘    └─────────────────┘    └──────────────┘   │
-│        │                      │                      │           │
-│  • Generates              • Message Queue      • ML Classification│
-│    telemetry data         • Persistent Store   • Anomaly Detection│
-│  • Stream ingestion       • Data Distribution  • Alert Generation │
-│                                                                   │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │              Configuration & Setup (setup_redis.py)      │   │
-│  │  • Initialize Redis streams                              │   │
-│  │  • Load ML models                                         │   │
-│  │  • Configure alert thresholds                            │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                     Predictive Maintenance System                     │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐     │
+│     │  Productor   │────▶│  Redis Streams  │◀────│   Workers   │     │
+│     │  (Producer)  │     │   (Broker/DB)   │     │ (Classifiers)│     │
+│     └──────────────┘     └─────────────────┘     └──────────────┘     │
+│            │                      │                      │            │
+│   • Generates            • Message Queue        • ML Classification   │
+│     telemetry data       • Persistent Store     • Anomaly Detection   │
+│   • Stream ingestion     • Data Distribution    • Alert Generation    │
+│                                                                       │
+│     ┌───────────────────────────────────────────────────────────┐     │
+│     │          Configuration & Setup (setup_redis.py)           │     │
+│     │                                                           │     │
+│     │  • Initialize Redis streams                               │     │
+│     │  • Load ML models                                         │     │
+│     │  • Configure alert thresholds                             │     │
+│     └───────────────────────────────────────────────────────────┘     │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Technology Stack
