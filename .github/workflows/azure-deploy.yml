@@ -33,7 +33,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    # Se despliega si estamos en 'ajustes_azure' o en 'main' tras un push
+    # Se despliega si estamos en 'ajustes_azure' o en 'main' o 'test-deploy' tras un push
     if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test-deploy') && github.event_name == 'push'
     
     steps:
@@ -51,7 +51,7 @@ jobs:
           source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt"
           target: "/home/adminuser/predictive-maintenance"
 
-      - name: Desplegar Microservicios en Azure
+      - name: Desplegar Microservicios en Azure (Zero-Downtime)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_IP }}
@@ -59,7 +59,11 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             cd /home/adminuser/predictive-maintenance
-            # MEJORA: Uso de 'docker compose' (V2) sin guion para mayor compatibilidad
-            # con instalaciones modernas de Docker y soporte de condiciones en depends_on.
-            sudo docker compose down
-            sudo docker-compose up --build -d --scale worker=3
+            
+            # 1. Aseguramos que la infraestructura y los workers estén corriendo. 
+            # Al no hacer 'down', los contenedores actuales no se detienen.
+            sudo docker compose up --build -d --scale worker=3
+            
+            # 2. Reiniciamos ÚNICAMENTE el contenedor de setup.
+            # Este leerá el nuevo modelo del volumen montado e inyectará los nodos atómicamente en Redis.
+            sudo docker compose restart setup-redis
