@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
-from setup_redis import preparar_base_datos
+from src.setup_redis import preparar_base_datos
 
 # Usamos 'patch' para interceptar las llamadas a Redis y a la lectura de archivos (open)
 @patch("setup_redis.redis.Redis")
