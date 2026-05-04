@@ -1,170 +1,82 @@
 {
-    "node:0": {
+    "nodo:0": {
         "tipo": "decision",
         "variable": "Rotational speed [rpm]",
         "umbral": "1386.5",
         "hijo_menor_igual": "nodo:1",
-        "hijo_mayor": "nodo:16"
+        "hijo_mayor": "nodo:8"
     },
-    "node:1": {
+    "nodo:1": {
         "tipo": "decision",
         "variable": "Air temperature [K]",
         "umbral": "301.55",
         "hijo_menor_igual": "nodo:2",
-        "hijo_mayor": "nodo:9"
+        "hijo_mayor": "nodo:5"
     },
-    "node:2": {
+    "nodo:2": {
         "tipo": "decision",
         "variable": "Torque [Nm]",
         "umbral": "60.05",
         "hijo_menor_igual": "nodo:3",
-        "hijo_mayor": "nodo:6"
+        "hijo_mayor": "nodo:4"
     },
-    "node:3": {
-        "tipo": "decision",
-        "variable": "Tool wear [min]",
-        "umbral": "188.5",
-        "hijo_menor_igual": "nodo:4",
-        "hijo_mayor": "nodo:5"
-    },
-    "node:4": {
+    "nodo:3": {
         "tipo": "hoja",
         "resultado": "Normal"
     },
-    "node:5": {
+    "nodo:4": {
         "tipo": "hoja",
         "resultado": "Failure"
     },
-    "node:6": {
-        "tipo": "decision",
-        "variable": "Torque [Nm]",
-        "umbral": "65.0",
-        "hijo_menor_igual": "nodo:7",
-        "hijo_mayor": "nodo:8"
-    },
-    "node:7": {
-        "tipo": "hoja",
-        "resultado": "Failure"
-    },
-    "node:8": {
-        "tipo": "hoja",
-        "resultado": "Failure"
-    },
-    "node:9": {
+    "nodo:5": {
         "tipo": "decision",
         "variable": "Process temperature [K]",
         "umbral": "312.25",
-        "hijo_menor_igual": "nodo:10",
-        "hijo_mayor": "nodo:13"
+        "hijo_menor_igual": "nodo:6",
+        "hijo_mayor": "nodo:7"
     },
-    "node:10": {
-        "tipo": "decision",
-        "variable": "Rotational speed [rpm]",
-        "umbral": "1380.5",
-        "hijo_menor_igual": "nodo:11",
-        "hijo_mayor": "nodo:12"
-    },
-    "node:11": {
+    "nodo:6": {
         "tipo": "hoja",
         "resultado": "Failure"
     },
-    "node:12": {
+    "nodo:7": {
         "tipo": "hoja",
         "resultado": "Failure"
     },
-    "node:13": {
-        "tipo": "decision",
-        "variable": "Torque [Nm]",
-        "umbral": "56.7",
-        "hijo_menor_igual": "nodo:14",
-        "hijo_mayor": "nodo:15"
-    },
-    "node:14": {
-        "tipo": "hoja",
-        "resultado": "Normal"
-    },
-    "node:15": {
-        "tipo": "hoja",
-        "resultado": "Failure"
-    },
-    "node:16": {
+    "nodo:8": {
         "tipo": "decision",
         "variable": "Tool wear [min]",
         "umbral": "204.5",
-        "hijo_menor_igual": "nodo:17",
-        "hijo_mayor": "nodo:24"
+        "hijo_menor_igual": "nodo:9",
+        "hijo_mayor": "nodo:12"
     },
-    "node:17": {
+    "nodo:9": {
         "tipo": "decision",
         "variable": "Torque [Nm]",
         "umbral": "15.4",
-        "hijo_menor_igual": "nodo:18",
-        "hijo_mayor": "nodo:21"
+        "hijo_menor_igual": "nodo:10",
+        "hijo_mayor": "nodo:11"
     },
-    "node:18": {
-        "tipo": "decision",
-        "variable": "Torque [Nm]",
-        "umbral": "13.45",
-        "hijo_menor_igual": "nodo:19",
-        "hijo_mayor": "nodo:20"
-    },
-    "node:19": {
+    "nodo:10": {
         "tipo": "hoja",
         "resultado": "Failure"
     },
-    "node:20": {
-        "tipo": "hoja",
-        "resultado": "Failure"
-    },
-    "node:21": {
-        "tipo": "decision",
-        "variable": "Torque [Nm]",
-        "umbral": "57.05",
-        "hijo_menor_igual": "nodo:22",
-        "hijo_mayor": "nodo:23"
-    },
-    "node:22": {
+    "nodo:11": {
         "tipo": "hoja",
         "resultado": "Normal"
     },
-    "node:23": {
-        "tipo": "hoja",
-        "resultado": "Failure"
-    },
-    "node:24": {
+    "nodo:12": {
         "tipo": "decision",
         "variable": "Torque [Nm]",
         "umbral": "45.25",
-        "hijo_menor_igual": "nodo:25",
-        "hijo_mayor": "nodo:28"
+        "hijo_menor_igual": "nodo:13",
+        "hijo_mayor": "nodo:14"
     },
-    "node:25": {
-        "tipo": "decision",
-        "variable": "Torque [Nm]",
-        "umbral": "41.35",
-        "hijo_menor_igual": "nodo:26",
-        "hijo_mayor": "nodo:27"
-    },
-    "node:26": {
+    "nodo:13": {
         "tipo": "hoja",
         "resultado": "Failure"
     },
-    "node:27": {
-        "tipo": "hoja",
-        "resultado": "Normal"
-    },
-    "node:28": {
-        "tipo": "decision",
-        "variable": "Tool wear [min]",
-        "umbral": "206.5",
-        "hijo_menor_igual": "nodo:29",
-        "hijo_mayor": "nodo:30"
-    },
-    "node:29": {
-        "tipo": "hoja",
-        "resultado": "Normal"
-    },
-    "node:30": {
+    "nodo:14": {
         "tipo": "hoja",
         "resultado": "Failure"
     }
