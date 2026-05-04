@@ -3,7 +3,7 @@ from unittest.mock import patch, mock_open, MagicMock
 from src.setup_redis import preparar_base_datos
 
 # Usamos 'patch' para interceptar las llamadas a Redis y a la lectura de archivos (open)
-@patch("setup_redis.redis.Redis")
+@patch("src.setup_redis.redis.Redis")
 @patch("builtins.open", new_callable=mock_open, read_data='{"nodo:1": {"feature": "temperatura", "threshold": 50}}')
 def test_preparar_base_datos_exito(mock_archivo, mock_redis_class):
     """Prueba que el modelo se inyecta correctamente si Redis y el JSON funcionan."""
@@ -26,7 +26,7 @@ def test_preparar_base_datos_exito(mock_archivo, mock_redis_class):
     mock_redis_instancia.ping.assert_called_once() # Comprobamos que hizo ping a Redis
     mock_pipeline.execute.assert_called_once()     # Comprobamos que ejecutó el guardado
 
-@patch("setup_redis.redis.Redis")
+@patch("src.setup_redis.redis.Redis")
 def test_preparar_base_datos_fallo_conexion(mock_redis_class):
     """Prueba que la función maneja bien un error si Redis está apagado."""
     
