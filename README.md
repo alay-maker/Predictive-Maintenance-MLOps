@@ -19,6 +19,7 @@ A production-grade MLOps platform for ingesting, processing, and classifying rea
 - [Usage](#usage)
 - [Development](#development)
 - [Deployment](#deployment)
+- [Azure End-to-End Deployment](#azure-end-to-end-deployment)
 - [Monitoring & Troubleshooting](#monitoring--troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -49,9 +50,9 @@ This project implements a **real-time predictive maintenance system** for indust
 ### System Design
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────────────────┐
 │                     Predictive Maintenance System                     │
-├───────────────────────────────────────────────────────────────────────┤
+├─────────────────────────────────────────────────────────────────────────┤
 │                                                                       │
 │     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐     │
 │     │  Productor   │────▶│  Redis Streams  │◀────│   Workers   │     │
@@ -68,9 +69,9 @@ This project implements a **real-time predictive maintenance system** for indust
 │     │  • Initialize Redis streams                               │     │
 │     │  • Load ML models                                         │     │
 │     │  • Configure alert thresholds                             │     │
-│     └───────────────────────────────────────────────────────────┘     │
+│     └───────────────────────────────────────────────────────���───┘     │
 │                                                                       │
-└───────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Technology Stack
@@ -612,6 +613,578 @@ docker-compose up -d
 
 ---
 
+## 🚀 Azure End-to-End Deployment
+
+This section provides a **complete step-by-step guide** to deploy the entire Predictive Maintenance system from scratch on Microsoft Azure, including infrastructure provisioning, Docker setup, and live demonstrations of the system.
+
+### 📌 Overview
+
+The deployment process consists of:
+1. **Infrastructure Provisioning** - Create Azure VMs and resources using Terraform
+2. **SSH Connection** - Connect to the VM securely
+3. **Docker Installation** - Install Docker cleanly without dependency conflicts
+4. **Code Deployment** - Clone and configure the application
+5. **System Launch** - Start all microservices
+6. **Scalability Testing** - Demonstrate horizontal scaling
+7. **Real-time Monitoring** - View live logs and metrics
+8. **Cleanup** - Graceful shutdown and resource cleanup
+
+---
+
+### 1️⃣ Provision Infrastructure with Terraform
+
+**Objective**: Create Azure Virtual Machine and networking resources
+
+#### Step 1: Navigate to Terraform directory
+
+```bash
+cd terraform
+```
+
+#### Step 2: Initialize Terraform
+
+Terraform needs to download provider plugins and prepare your working directory:
+
+```bash
+terraform init
+```
+
+**What this does**:
+- Downloads Azure provider plugin
+- Initializes state management
+- Creates `.terraform/` directory with dependencies
+
+#### Step 3: Review infrastructure plan
+
+Before applying changes, preview what will be created:
+
+```bash
+terraform plan -out=tfplan
+```
+
+**Output includes**:
+- Resource Group creation
+- Virtual Machine configuration
+- Network interfaces and security groups
+- Storage accounts (if applicable)
+
+#### Step 4: Apply Terraform configuration
+
+Create the infrastructure in Azure:
+
+```bash
+terraform apply tfplan
+```
+
+**Wait for completion** (~5-10 minutes). The output will display:
+
+```
+Apply complete! Resources: X added, 0 changed, 0 destroyed.
+
+Outputs:
+
+vm_public_ip = "20.XX.XXX.XX"
+redis_connection_string = "redis://20.XX.XXX.XX:6379"
+admin_username = "adminuser"
+```
+
+#### Step 5: Save the public IP address
+
+Store the output IP for the next steps:
+
+```bash
+AZURE_VM_IP=$(terraform output -raw vm_public_ip)
+echo "VM Public IP: $AZURE_VM_IP"
+```
+
+---
+
+### 2️⃣ Connect to Azure VM via SSH
+
+**Objective**: Establish secure remote connection to your Virtual Machine
+
+#### Step 1: Verify SSH key exists
+
+```bash
+ls -la ~/.ssh/id_rsa
+```
+
+If the file doesn't exist, generate it:
+
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+```
+
+#### Step 2: Connect to the VM
+
+Use SSH to connect with your private key:
+
+```bash
+ssh -i ~/.ssh/id_rsa adminuser@$AZURE_VM_IP
+```
+
+**Success indicator**: You'll see the Ubuntu command prompt:
+
+```
+adminuser@pred-maint-vm:~$
+```
+
+#### Step 3: Verify connectivity
+
+Confirm you're on the correct machine:
+
+```bash
+uname -a
+hostname
+```
+
+---
+
+### 3️⃣ Install Docker (Clean Installation)
+
+**Objective**: Install Docker without dependency conflicts using official scripts
+
+#### Step 1: Update system packages
+
+```bash
+sudo apt-get update
+sudo apt-get upgrade -y
+```
+
+#### Step 2: Download official Docker installation script
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+```
+
+This downloads the official Docker installation script maintained by Docker Inc.
+
+#### Step 3: Execute Docker installation
+
+```bash
+sudo sh get-docker.sh
+```
+
+**Installation includes**:
+- Docker Engine
+- Docker CLI
+- Container runtime
+- All required dependencies (automatically resolved)
+
+#### Step 4: Add current user to Docker group
+
+Allow running Docker commands without `sudo`:
+
+```bash
+sudo usermod -aG docker $(whoami)
+```
+
+#### Step 5: Activate group membership
+
+Apply the new group assignment:
+
+```bash
+newgrp docker
+```
+
+#### Step 6: Verify Docker installation
+
+Test that Docker is working correctly:
+
+```bash
+docker --version
+docker ps
+```
+
+**Expected output**:
+```
+Docker version 24.X.X, build XXXXX
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+
+---
+
+### 4️⃣ Download Project Code
+
+**Objective**: Clone the repository and prepare the application
+
+#### Step 1: Clone the repository
+
+```bash
+git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
+```
+
+#### Step 2: Navigate to project directory
+
+```bash
+cd Predictive-Maintenance-MLOps
+```
+
+#### Step 3: Checkout deployment branch
+
+```bash
+git checkout test-deploy
+```
+
+#### Step 4: Verify project structure
+
+```bash
+ls -la
+```
+
+You should see:
+```
+Dockerfile
+docker-compose.yml
+models/
+src/
+data/
+terraform/
+README.md
+```
+
+---
+
+### 5️⃣ Deploy the Architecture
+
+**Objective**: Launch all microservices (Redis, Producer, Workers)
+
+#### Step 1: Build and start containers
+
+```bash
+docker compose up -d --build
+```
+
+**Flags explained**:
+- `-d`: Run in detached mode (background)
+- `--build`: Rebuild images from Dockerfile
+
+#### Step 2: Wait for services to initialize
+
+The system needs ~30 seconds to:
+- Build the application image
+- Pull Redis image
+- Start containers
+- Initialize Redis streams
+- Load ML models
+
+#### Step 3: Verify all services are running
+
+```bash
+docker ps
+```
+
+**Expected output** (minimum 3 containers):
+```
+CONTAINER ID   IMAGE                    STATUS          PORTS
+abcd1234       redis:latest             Up 10 seconds   0.0.0.0:6379->6379/tcp
+efgh5678       predictive-maint:latest  Up 5 seconds    
+ijkl9012       predictive-maint:latest  Up 3 seconds    
+```
+
+#### Step 4: Check initialization logs
+
+Verify that setup_redis.py ran successfully:
+
+```bash
+docker compose logs setup-redis
+```
+
+**Look for**:
+```
+✅ El modelo de árbol de decisión ha sido cargado en Redis
+```
+
+---
+
+### 6️⃣ Demonstrate Scalability
+
+**Objective**: Scale the worker services to process data in parallel
+
+#### Step 1: Scale to 3 worker instances
+
+```bash
+docker compose up -d --scale worker=3
+```
+
+This command:
+- Adds additional worker containers
+- Keeps existing services running
+- Workers automatically join the consumer group
+- Load is distributed across all workers
+
+#### Step 2: Verify scaling worked
+
+```bash
+docker ps
+```
+
+Now you should see **3 worker containers** (plus Redis and Productor):
+```
+CONTAINER ID   IMAGE                    STATUS
+worker_1       predictive-maint:latest  Up 5 seconds
+worker_2       predictive-maint:latest  Up 4 seconds
+worker_3       predictive-maint:latest  Up 2 seconds
+redis          redis:latest             Up 2 minutes
+productor      predictive-maint:latest  Up 2 minutes
+```
+
+#### Step 3: Verify load distribution
+
+Check that each worker is consuming messages:
+
+```bash
+docker compose logs worker
+```
+
+You should see output from multiple workers processing different messages:
+```
+[worker_1]: Esperando datos de la fresadora...
+[worker_2]: Esperando datos de la fresadora...
+[worker_3]: Esperando datos de la fresadora...
+```
+
+---
+
+### 7️⃣ Real-Time Monitoring
+
+**Objective**: View live telemetry data, alerts, and system metrics
+
+#### Step 1: Monitor producer telemetry stream
+
+Watch data being generated in real-time:
+
+```bash
+docker compose logs -f productor
+```
+
+**Expected output**:
+```
+[PRODUCTOR]: Conectado a servidor Redis. PONG
+[PRODUCTOR]: Enviando datos de sensores... ID: 1234567890-0
+```
+
+Press `Ctrl+C` to exit
+
+#### Step 2: Monitor worker alerts
+
+In a new terminal, view alerts generated by workers:
+
+```bash
+docker compose logs -f worker
+```
+
+**Look for critical alerts**:
+```
+[worker_1] ¡ALERTA CRÍTICA! Fallo detectado. (ID: 1234567890-0)
+[worker_2] ¡ALERTA CRÍTICA! Fallo detectado. (ID: 1234567891-0)
+[worker_3] ¡ALERTA CRÍTICA! Fallo detectado. (ID: 1234567892-0)
+```
+
+#### Step 3: Monitor all services continuously
+
+View combined logs with timestamps:
+
+```bash
+docker compose logs -f --timestamps
+```
+
+#### Step 4: Connect to Redis for advanced monitoring
+
+Open interactive Redis CLI:
+
+```bash
+docker exec -it redis-server redis-cli
+```
+
+**View stream statistics**:
+```bash
+# Check telemetry stream length
+XLEN input_stream
+
+# View alert stream length
+XLEN registro_alertas
+
+# Monitor streams in real-time
+XREAD COUNT 5 STREAMS input_stream 0
+
+# Exit Redis CLI
+exit
+```
+
+#### Step 5: Monitor container resource usage
+
+View CPU, memory, and network metrics:
+
+```bash
+docker stats --no-stream
+```
+
+**Shows for each container**:
+- CPU percentage
+- Memory usage
+- Network I/O
+- Block I/O
+
+---
+
+### 8️⃣ Cleanup and Shutdown
+
+**Objective**: Gracefully stop services and destroy Azure resources
+
+#### Step 1: Stop all Docker services
+
+Stop containers but preserve data:
+
+```bash
+docker compose stop
+```
+
+#### Step 2: Remove containers
+
+Delete all containers (not images):
+
+```bash
+docker compose down
+```
+
+#### Step 3: Clean up volumes (optional)
+
+⚠️ **Warning**: This deletes all persisted data including Redis streams
+
+```bash
+docker compose down -v
+```
+
+#### Step 4: Destroy Azure infrastructure
+
+Remove all Terraform-managed resources to avoid charges:
+
+```bash
+cd terraform
+terraform destroy
+```
+
+**Confirmation prompt**:
+```
+Do you really want to destroy all resources?
+Type 'yes' to confirm.
+```
+
+Type `yes` and press Enter.
+
+**Wait for completion** (~5-10 minutes). The output will show:
+```
+Destroy complete! Resources: X destroyed.
+```
+
+#### Step 5: Verify destruction
+
+Confirm resources are gone:
+
+```bash
+terraform state list
+# Should be empty
+```
+
+Also verify in Azure Portal - Resource Group should be deleted.
+
+---
+
+### 🔍 Complete Workflow Summary
+
+```bash
+# 1. Provision Infrastructure
+cd terraform
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+AZURE_VM_IP=$(terraform output -raw vm_public_ip)
+
+# 2. Connect to VM
+ssh -i ~/.ssh/id_rsa adminuser@$AZURE_VM_IP
+
+# 3. Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $(whoami)
+newgrp docker
+
+# 4. Deploy Application
+git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
+cd Predictive-Maintenance-MLOps
+git checkout test-deploy
+
+# 5. Launch System
+docker compose up -d --build
+
+# 6. Scale Workers
+docker compose up -d --scale worker=3
+
+# 7. Monitor (in separate terminals)
+docker compose logs -f productor
+docker compose logs -f worker
+docker stats
+
+# 8. Cleanup
+docker compose down
+docker compose down -v
+cd terraform
+terraform destroy
+```
+
+---
+
+### ⚠️ Troubleshooting Azure Deployment
+
+#### Issue: Terraform fails to authenticate
+
+**Solution**:
+```bash
+az login
+az account show
+```
+
+Ensure your subscription is active and you have permissions.
+
+#### Issue: SSH connection refused
+
+**Solution**:
+```bash
+# Verify security group allows SSH (port 22)
+# Check VM is in "Running" state in Azure Portal
+# Verify correct IP address
+echo $AZURE_VM_IP
+```
+
+#### Issue: Docker daemon not responding
+
+**Solution**:
+```bash
+# Restart Docker
+sudo systemctl restart docker
+
+# Or reconnect group membership
+sudo usermod -aG docker $(whoami)
+newgrp docker
+```
+
+#### Issue: Containers won't start
+
+**Solution**:
+```bash
+# Check Docker logs
+docker compose logs
+
+# Rebuild images
+docker compose up -d --build
+
+# Check disk space
+df -h
+```
+
+---
+
 ## 📈 Monitoring & Troubleshooting
 
 ### Logs and Diagnostics
@@ -746,6 +1319,7 @@ This project is licensed under the **MIT License** - see the LICENSE file for de
 - [Docker Compose Reference](https://docs.docker.com/compose/compose-file/)
 - [scikit-learn Documentation](https://scikit-learn.org/)
 - [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+- [Azure CLI Documentation](https://learn.microsoft.com/en-us/cli/azure/)
 
 ---
 
