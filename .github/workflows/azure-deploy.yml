@@ -2,8 +2,8 @@ name: MLOps CI/CD Pipeline
 
 on:
   push:
-    # 💡 Añadimos ambas ramas para que funcione ahora y en la entrega final
-    branches: [ "ajustes_azure", "main" ]
+    # Se activa en ambas ramas para facilitar pruebas y entrega final
+    branches: [ "ajustes_azure", "main", "test-deploy" ]
   pull_request:
     branches: [ "main" ]
 
@@ -33,20 +33,22 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    # 💡 CORRECCIÓN: Permite desplegar si estamos en 'ajustes_azure' o en 'main'
+    # Se despliega si estamos en 'ajustes_azure' o en 'main' tras un push
     if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main') && github.event_name == 'push'
     
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
 
-      - name: Copiar archivos al servidor
+      - name: Copiar archivos esenciales al servidor
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: adminuser
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          source: "."
+          # MEJORA: Solo copiamos lo necesario para que el contenedor funcione.
+          # Esto evita subir gigas de historial de .git o carpetas de caché local.
+          source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt"
           target: "/home/adminuser/predictive-maintenance"
 
       - name: Desplegar Microservicios en Azure
@@ -57,5 +59,7 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             cd /home/adminuser/predictive-maintenance
-            sudo docker-compose down
-            sudo docker-compose up --build -d
+            # MEJORA: Uso de 'docker compose' (V2) sin guion para mayor compatibilidad
+            # con instalaciones modernas de Docker y soporte de condiciones en depends_on.
+            sudo docker compose down
+            sudo docker compose up --build -d
