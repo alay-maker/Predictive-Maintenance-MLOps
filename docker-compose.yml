@@ -45,8 +45,8 @@ services:
   # 4. El Worker
   worker:
     build: .
-    container_name: python-worker
-    command: python src/worker.py worker_docker
+    command: >
+      sh -c "python src/worker.py worker_$$(hostname)"
     depends_on:
       setup-redis:
         condition: service_completed_successfully
