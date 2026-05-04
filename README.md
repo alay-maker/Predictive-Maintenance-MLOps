@@ -145,8 +145,28 @@ Predictive-Maintenance-MLOps/
 ### Simplified View
 
 ```
-Sensors → Producer → Redis Streams ← Workers (×N) → Alerts
-           (Data Gen)  (Broker)      (Classifiers)  (Output)
+┌───────────────────────────────────────────────────────────────────────┐
+│                     Predictive Maintenance System                     │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐     │
+│     │  Productor   │────▶│  Redis Streams  │◀────│   Workers   │     │
+│     │  (Producer)  │     │   (Broker/DB)   │     │ (Classifiers)│     │
+│     └──────────────┘     └─────────────────┘     └──────────────┘     │
+│            │                      │                      │            │
+│   • Generates            • Message Queue        • ML Classification   │
+│     telemetry data       • Persistent Store     • Anomaly Detection   │
+│   • Stream ingestion     • Data Distribution    • Alert Generation    │
+│                                                                       │
+│     ┌───────────────────────────────────────────────────────────┐     │
+│     │          Configuration & Setup (setup_redis.py)           │     │
+│     │                                                           │     │
+│     │  • Initialize Redis streams                               │     │
+│     │  • Load ML models                                         │     │
+│     │  • Configure alert thresholds                             │     │
+│     └───────────────────────────────────────────────────────────┘     │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Complete Architecture
