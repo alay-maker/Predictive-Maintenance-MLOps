@@ -21,7 +21,7 @@ def preparar_base_datos():
         with open(RUTA_JSON, 'r') as f:
             diccionario_nodos = json.load(f)
             
-        # Limpieza e inyección atómica usando Pipeline (¡Excelente práctica!) 
+        # Limpieza e inyección atómica usando Pipeline (¡Excelente práctica!)
         nodos_antiguos = list(cliente.scan_iter(match="nodo:*"))
         pipe = cliente.pipeline()
         
