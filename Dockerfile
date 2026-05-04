@@ -20,6 +20,3 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar el resto del proyecto
 COPY . .
-
-# Comando por defecto
-CMD ["python", "--version"]
