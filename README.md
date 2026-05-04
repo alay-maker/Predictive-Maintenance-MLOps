@@ -8,10 +8,9 @@ A production-grade MLOps platform for ingesting, processing, and classifying rea
 
 ## 📋 Quick Navigation
 
-- **[📐 Architecture Diagrams](ARCHITECTURE.md)** ⭐ _Visual system design with detailed data flows_
 - **[🚀 Quick Start](#quick-start)** - Get running in 5 minutes
-- **[☁️ Azure Deployment](#azure-end-to-end-deployment)** - Production cloud setup
-- **[📚 Full Documentation](#full-documentation)** - Complete reference
+- **[☁️ Azure Deployment](#azure-deployment)** - Production cloud setup
+- **[📐 Architecture Diagrams](ARCHITECTURE.md)** - Visual system design
 
 ---
 
@@ -25,41 +24,26 @@ This project implements a **real-time predictive maintenance system** for indust
 - **Generates** real-time alerts when anomalies are detected
 - **Scales** horizontally through containerized worker nodes
 
-### Use Cases
+### Key Features
 
-- **Condition-Based Maintenance**: Predict equipment failure before it occurs
-- **Downtime Reduction**: Identify maintenance needs during planned windows
-- **Cost Optimization**: Prevent costly unplanned equipment breakdowns
-- **Performance Analytics**: Track equipment health metrics over time
-
----
-
-## ✨ Features
-
-- ✅ **Real-time Data Streaming** - High-throughput telemetry ingestion using Redis streams
-- ✅ **Distributed Processing** - Horizontally scalable worker architecture
-- ✅ **Machine Learning Integration** - Pre-trained models for equipment classification
-- ✅ **Anomaly Detection** - Automatic identification of abnormal equipment behavior
-- ✅ **Docker Containerization** - Consistent environments across dev/test/prod
-- ✅ **Alert System** - Real-time notifications for critical events
-- ✅ **Infrastructure as Code** - Terraform templates for Azure deployment
-- ✅ **Horizontal Scaling** - Add workers dynamically without restart
-- ✅ **Data Persistence** - Redis-backed storage with configurable TTL
+- ✅ Real-time data streaming with Redis streams
+- ✅ Horizontally scalable worker architecture
+- ✅ ML-powered anomaly detection
+- ✅ Containerized with Docker & Docker Compose
+- ✅ Infrastructure as Code (Terraform)
+- ✅ Automated Azure deployment with GitHub Actions
 
 ---
 
 ## 📦 Prerequisites
 
 ### Local Development
-
-- **Python 3.11+** | **Redis 7.0+** | **Docker & Compose 1.29+**
+- Python 3.11+ | Redis 7.0+ | Docker 1.29+
 
 ### Cloud Deployment
-
-- **Azure CLI** | **Terraform 1.0+** | **SSH Key Pair** | **Active Azure Subscription**
+- Azure CLI | Terraform 1.0+ | SSH Key Pair | Active Azure Subscription
 
 ### System Requirements
-
 - **Minimum**: 2 CPU cores, 4 GB RAM, 10 GB storage
 - **Recommended**: 4+ CPU cores, 8+ GB RAM, 20 GB storage
 
@@ -70,47 +54,41 @@ This project implements a **real-time predictive maintenance system** for indust
 ### Option 1: Docker Compose (Development)
 
 ```bash
-# 1. Clone and setup
+# Clone and setup
 git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
 cd Predictive-Maintenance-MLOps
-git checkout test-deploy
+git checkout main  # Use current branch
 
-# 2. Run the system
-docker-compose up --build
+# Run the system
+docker compose up -d --build
 
-# 3. Monitor (in another terminal)
-docker-compose logs -f
+# Monitor logs
+docker compose logs -f
 
-# 4. Access Redis
-docker exec -it redis-server redis-cli
-XLEN telemetria    # View telemetry stream
-XLEN alertas       # View alerts stream
+# Scale workers
+docker compose up -d --scale worker=3
 
-# 5. Scale workers
-docker-compose up -d --scale worker=3
-
-# 6. Cleanup
-docker-compose down -v
+# Cleanup
+docker compose down -v
 ```
 
 ### Option 2: Local Python
 
 ```bash
-# 1. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 2. Start Redis (macOS: brew install redis && brew services start redis)
-# 3. Initialize system
+# Start Redis (macOS: brew install redis && brew services start redis)
 python src/setup_redis.py
 
-# 4. Start producer (Terminal 1)
+# Terminal 1: Producer
 python src/productor.py
 
-# 5. Start workers (Terminal 2+)
-python src/worker.py worker_local_1
-python src/worker.py worker_local_2
+# Terminal 2+: Workers
+python src/worker.py worker_1
+python src/worker.py worker_2
 
-# 6. Clean test data
+# Clean test data
 python src/borrar_datos.py
 ```
 
@@ -120,77 +98,111 @@ python src/borrar_datos.py
 
 ```
 Predictive-Maintenance-MLOps/
-├── src/                              # Application source code
-│   ├── setup_redis.py               # Redis initialization & model loading
-│   ├── productor.py                 # Telemetry data generator
-│   ├── worker.py                    # Stream consumer & ML classifier
-│   └── borrar_datos.py              # Cleanup utility
-│
-├── models/                          # Pre-trained ML models
-├── terraform/                       # Azure infrastructure as code
-├── tests/                           # Unit tests (pytest)
-├── notebooks/                       # Jupyter notebooks (EDA, training)
-│
-├── Dockerfile                       # Container definition
-├── docker-compose.yml               # Multi-container orchestration
-├── requirements.txt                 # Python dependencies
-├── ARCHITECTURE.md                  # Detailed system architecture 📐
-└── README.md                        # This file
+├── src/                          # Application source code
+│   ├── setup_redis.py           # Redis initialization & model loading
+│   ├── productor.py             # Telemetry data generator
+│   ├── worker.py                # Stream consumer & ML classifier
+│   └── borrar_datos.py          # Cleanup utility
+├── models/                      # Pre-trained ML models
+├── terraform/                   # Azure infrastructure as code
+├── tests/                       # Unit tests (pytest)
+├── .github/workflows/           # GitHub Actions CI/CD
+├── Dockerfile                   # Container definition
+├── docker-compose.yml           # Multi-container orchestration
+├── requirements.txt             # Python dependencies
+├── ARCHITECTURE.md              # Detailed system design 📐
+└── README.md                    # This file
 ```
 
 ---
 
 ## 🏗️ System Architecture
 
-### Simplified View
-
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                     Predictive Maintenance System                     │
-├───────────────────────────────────────────────────────────────────────┤
-│                                                                       │
-│     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐     │
-│     │  Productor   │────▶│  Redis Streams  │◀────│   Workers   │     │
-│     │  (Producer)  │     │   (Broker/DB)   │     │ (Classifiers)│     │
-│     └──────────────┘     └─────────────────┘     └──────────────┘     │
-│            │                      │                      │            │
-│   • Generates            • Message Queue        • ML Classification   │
-│     telemetry data       • Persistent Store     • Anomaly Detection   │
-│   • Stream ingestion     • Data Distribution    • Alert Generation    │
-│                                                                       │
-│     ┌───────────────────────────────────────────────────────────┐     │
-│     │          Configuration & Setup (setup_redis.py)           │     │
-│     │                                                           │     │
-│     │  • Initialize Redis streams                               │     │
-│     │  • Load ML models                                         │     │
-│     │  • Configure alert thresholds                             │     │
-│     └───────────────────────────────────────────────────────────┘     │
-│                                                                       │
-└───────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│          Predictive Maintenance System              │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌──────────┐    ┌─────────────┐    ┌──────────┐  │
+│  │Producer  │───▶│Redis Streams│◀───│ Workers  │  │
+│  └──────────┘    └─────────────┘    └──────────┘  │
+│       │                 │                   │      │
+│  Telemetry        Message Queue      ML & Alerts  │
+│   Data            Persistence                     │
+│                                                     │
+│      Configuration & Setup (setup_redis.py)        │
+│   • Redis streams initialization                   │
+│   • ML model loading                               │
+│   • Alert threshold configuration                  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-### Complete Architecture
-
-**[📐 See ARCHITECTURE.md for:**
-- Core system design diagrams
-- Data flow lifecycle
-- Horizontal scaling architecture
-- Technology stack layers
-- Azure cloud deployment
-- Redis streams configuration
-- Consumer group coordination
-- Performance characteristics
+**[📐 See ARCHITECTURE.md for complete system design, data flows, and scaling strategies](#)**
 
 ---
 
-## 🔧 System Components
+## ☁️ Azure Deployment
 
-| Component | Purpose | Key Responsibility |
-|-----------|---------|-------------------|
-| **productor.py** | Data Source | Generate realistic telemetry data from CNC machines |
-| **Redis Streams** | Message Broker | Distribute data to workers, persist events |
-| **worker.py** | Processor | Apply ML models, detect anomalies, generate alerts |
-| **setup_redis.py** | Initialization | Create streams, load models, configure thresholds |
+### Two Deployment Options
+
+#### Option A: Manual Deployment
+
+Complete step-by-step guide:
+
+1. **Infrastructure**: `terraform apply` creates VM & networking
+2. **SSH Connection**: Connect securely to Azure VM
+3. **Docker Setup**: Install Docker on the VM
+4. **Code Deploy**: Clone repository
+5. **System Launch**: Start microservices with Docker Compose
+6. **Scaling**: Demonstrate worker scaling
+7. **Monitoring**: View real-time logs & metrics
+8. **Cleanup**: Destroy resources
+
+See [Detailed Manual Deployment Guide](#manual-deployment-steps) below.
+
+#### Option B: Automated Deployment (Recommended)
+
+**Automatic deployment with GitHub Actions:**
+
+```bash
+# 1. Prepare Terraform and save outputs
+cd terraform
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# Terraform outputs:
+# - AZURE_VM_IP (public IP)
+# - SSH_KEY (private key path)
+```
+
+```bash
+# 2. Add GitHub Secrets (one-time setup)
+# Go to: Settings → Secrets and variables → Actions → New repository secret
+
+# Add these secrets:
+# AZURE_VM_IP = "20.XX.XXX.XX"  (from terraform output)
+# SSH_PRIVATE_KEY = (content of ~/.ssh/id_rsa)
+# AZURE_SUBSCRIPTION_ID = (your Azure subscription ID)
+```
+
+```bash
+# 3. Trigger automatic deployment
+git add .
+git commit -m "deploy: trigger automated Azure deployment"
+git push origin main
+
+# GitHub Actions automatically:
+# ✅ Connects to Azure VM via SSH
+# ✅ Installs Docker
+# ✅ Clones this repository
+# ✅ Starts Docker Compose
+# ✅ Scales workers
+# ✅ Validates system is running
+```
+
+**Check deployment status:** Actions tab in GitHub
 
 ---
 
@@ -214,9 +226,9 @@ BATCH_SIZE=50                    # Messages per iteration
 POLL_INTERVAL=1000               # Poll frequency (ms)
 ```
 
-### Redis Streams
+### Data Streams
 
-**telemetria stream** (telemetry data - 1 week TTL):
+**telemetria stream** (telemetry - 1 week TTL):
 ```json
 {
   "timestamp": "2026-05-04T10:30:45.123Z",
@@ -235,40 +247,9 @@ POLL_INTERVAL=1000               # Poll frequency (ms)
   "equipment_id": "fresadora-1",
   "alert_type": "ANOMALY",
   "severity": 0.85,
-  "message": "Equipment vibration above threshold",
-  "recommended_action": "Schedule maintenance"
+  "message": "Equipment vibration above threshold"
 }
 ```
-
----
-
-## ☁️ Azure End-to-End Deployment
-
-### Quick Summary
-
-Complete step-by-step guide includes:
-1. **Infrastructure Provisioning** - Terraform creates VM & networking
-2. **SSH Connection** - Secure remote access
-3. **Docker Installation** - Clean setup on Azure VM
-4. **Code Deployment** - Clone & configure app
-5. **System Launch** - Start microservices
-6. **Scalability Testing** - Demonstrate load balancing
-7. **Real-time Monitoring** - View logs & metrics
-8. **Cleanup** - Graceful shutdown & resource cleanup
-
-### Complete Deployment Steps
-
-**[📖 See README.md Section "Azure End-to-End Deployment" for full 8-step guide]**
-
-Or jump to specific steps:
-- [1️⃣ Provision Infrastructure with Terraform](#1️⃣-provision-infrastructure-with-terraform)
-- [2️⃣ Connect to Azure VM via SSH](#2️⃣-connect-to-azure-vm-via-ssh)
-- [3️⃣ Install Docker](#3️⃣-install-docker-clean-installation)
-- [4️⃣ Download Project Code](#4️⃣-download-project-code)
-- [5️⃣ Deploy Architecture](#5️⃣-deploy-the-architecture)
-- [6️⃣ Demonstrate Scalability](#6️⃣-demonstrate-scalability)
-- [7️⃣ Real-Time Monitoring](#7️⃣-real-time-monitoring)
-- [8️⃣ Cleanup](#8️⃣-cleanup-and-shutdown)
 
 ---
 
@@ -277,9 +258,9 @@ Or jump to specific steps:
 ### View Logs
 
 ```bash
-docker-compose logs -f              # All services
-docker-compose logs -f productor    # Specific service
-docker-compose logs --tail=100      # Last 100 lines
+docker compose logs -f              # All services
+docker compose logs -f productor    # Specific service
+docker stats                        # Resource usage
 ```
 
 ### Redis Monitoring
@@ -288,26 +269,19 @@ docker-compose logs --tail=100      # Last 100 lines
 docker exec -it redis-server redis-cli
 
 # Inside redis-cli:
-XLEN telemetria                     # Pending entries count
-XINFO STREAM telemetria             # Stream statistics
-XINFO GROUPS telemetria             # Consumer groups info
+XLEN telemetria                  # Telemetry count
+XLEN alertas                     # Alert count
+XINFO STREAM telemetria          # Stream info
 ```
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Redis connection refused | Redis not running | `docker-compose restart redis-db` |
-| Consumer group missing | setup_redis.py failed | `docker-compose restart setup-redis` |
-| Worker crashes | Model not found | `docker-compose up -d --build` |
-| No data flowing | Producer stopped | `docker-compose logs productor` |
-
-### Resource Monitoring
-
-```bash
-docker stats                        # CPU, memory, network usage
-docker-compose logs --timestamps    # With timestamps
-```
+| Issue | Solution |
+|-------|----------|
+| Redis connection refused | `docker compose restart redis-db` |
+| Consumer group missing | `docker compose restart setup-redis` |
+| Worker crashes | `docker compose up -d --build` |
+| No data flowing | `docker compose logs productor` |
 
 ---
 
@@ -317,7 +291,7 @@ docker-compose logs --timestamps    # With timestamps
 
 ```bash
 python -m venv venv
-source venv/bin/activate            # Windows: venv\Scripts\activate
+source venv/bin/activate           # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 pip install pytest pytest-cov black flake8 mypy
 ```
@@ -325,51 +299,105 @@ pip install pytest pytest-cov black flake8 mypy
 ### Testing
 
 ```bash
-pytest                              # Run all tests
-pytest --cov=src tests/             # With coverage
-pytest -v tests/test_worker.py      # Specific file
+pytest                             # Run all tests
+pytest --cov=src tests/            # With coverage
+pytest -v tests/test_worker.py     # Specific file
 ```
 
 ### Code Quality
 
 ```bash
-black src/ tests/                   # Format code
-flake8 src/ tests/                  # Check style
-mypy src/                           # Type checking
+black src/ tests/                  # Format code
+flake8 src/ tests/                 # Style check
+mypy src/                          # Type checking
 ```
-
-### Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/name`
-3. Commit changes: `git commit -m "feat: description"`
-4. Push to fork: `git push origin feature/name`
-5. Create Pull Request
 
 ---
 
-## 🤝 Support
+## 🤝 Contributing
 
-For issues, questions, or suggestions:
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/name`
+3. Make changes and test locally
+4. Commit: `git commit -m "feat: description"`
+5. Push: `git push origin feature/name`
+6. Create Pull Request
 
-1. **Check** [GitHub Issues](https://github.com/alay-maker/Predictive-Maintenance-MLOps/issues)
-2. **Review** [ARCHITECTURE.md](ARCHITECTURE.md) for system design
-3. **Create** new issue with:
-   - Clear problem description
-   - Steps to reproduce
-   - Expected vs. actual behavior
-   - Environment details (OS, Python, Docker versions)
+---
+
+---
+
+# Manual Deployment Steps
+
+Complete guide for step-by-step Azure deployment.
+
+## 1️⃣ Provision Infrastructure with Terraform
+
+```bash
+cd terraform
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# Save outputs:
+AZURE_VM_IP=$(terraform output -raw vm_public_ip)
+echo "VM IP: $AZURE_VM_IP"
+```
+
+## 2️⃣ Connect to Azure VM
+
+```bash
+ssh -i ~/.ssh/id_rsa adminuser@$AZURE_VM_IP
+```
+
+## 3️⃣ Install Docker
+
+```bash
+sudo apt-get update && sudo apt-get upgrade -y
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $(whoami)
+newgrp docker
+docker --version
+```
+
+## 4️⃣ Deploy Application
+
+```bash
+git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
+cd Predictive-Maintenance-MLOps
+git checkout main
+docker compose up -d --build
+```
+
+## 5️⃣ Scale Workers
+
+```bash
+docker compose up -d --scale worker=3
+```
+
+## 6️⃣ Monitor System
+
+```bash
+docker compose logs -f
+```
+
+## 7️⃣ Cleanup
+
+```bash
+docker compose down -v
+cd terraform
+terraform destroy
+```
 
 ---
 
 ## 📚 Additional Resources
 
-- [Architecture Diagrams](ARCHITECTURE.md) - Complete system design
+- [Full Architecture Design](ARCHITECTURE.md)
 - [Redis Streams Documentation](https://redis.io/docs/data-types/streams/)
 - [Docker Compose Reference](https://docs.docker.com/compose/compose-file/)
-- [scikit-learn Documentation](https://scikit-learn.org/)
 - [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-- [Azure CLI Documentation](https://learn.microsoft.com/en-us/cli/azure/)
 
 ---
 
@@ -379,446 +407,9 @@ MIT License - See [LICENSE](LICENSE) file for details
 
 ---
 
-## 👥 Author
+## 👥 Authors
 
-**alay-maker** - [GitHub Profile](https://github.com/alay-maker)
+- **alay-maker** - [GitHub Profile](https://github.com/alay-maker)
+- **Colaborador** - [GitHub Profile](https://github.com/colaborador)
 
 **Last Updated**: May 4, 2026 | **Status**: Active Development
-
----
-
----
-
-# 🚀 Azure End-to-End Deployment
-
-Complete step-by-step guide to deploy the entire system from scratch on Microsoft Azure.
-
-## 📌 Overview
-
-The deployment process consists of:
-1. **Infrastructure Provisioning** - Create Azure VMs and resources using Terraform
-2. **SSH Connection** - Connect to the VM securely
-3. **Docker Installation** - Install Docker cleanly without dependency conflicts
-4. **Code Deployment** - Clone and configure the application
-5. **System Launch** - Start all microservices
-6. **Scalability Testing** - Demonstrate horizontal scaling
-7. **Real-time Monitoring** - View live logs and metrics
-8. **Cleanup** - Graceful shutdown and resource cleanup
-
----
-
-## 1️⃣ Provision Infrastructure with Terraform
-
-**Objective**: Create Azure Virtual Machine and networking resources
-
-### Step 1: Navigate to Terraform directory
-
-```bash
-cd terraform
-```
-
-### Step 2: Initialize Terraform
-
-```bash
-terraform init
-```
-
-Downloads Azure provider plugin and initializes state management.
-
-### Step 3: Review infrastructure plan
-
-```bash
-terraform plan -out=tfplan
-```
-
-Previews Resource Groups, VMs, network interfaces, and security groups.
-
-### Step 4: Apply Terraform configuration
-
-```bash
-terraform apply tfplan
-```
-
-**Wait for completion** (~5-10 minutes). Output displays:
-
-```
-Apply complete! Resources: X added, 0 changed, 0 destroyed.
-
-Outputs:
-vm_public_ip = "20.XX.XXX.XX"
-redis_connection_string = "redis://20.XX.XXX.XX:6379"
-admin_username = "adminuser"
-```
-
-### Step 5: Save the public IP
-
-```bash
-AZURE_VM_IP=$(terraform output -raw vm_public_ip)
-echo "VM Public IP: $AZURE_VM_IP"
-```
-
----
-
-## 2️⃣ Connect to Azure VM via SSH
-
-**Objective**: Establish secure remote connection
-
-### Step 1: Verify SSH key
-
-```bash
-ls -la ~/.ssh/id_rsa
-
-# If missing, generate:
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-```
-
-### Step 2: Connect to VM
-
-```bash
-ssh -i ~/.ssh/id_rsa adminuser@$AZURE_VM_IP
-```
-
-Success indicator - Ubuntu prompt appears:
-```
-adminuser@pred-maint-vm:~$
-```
-
-### Step 3: Verify connectivity
-
-```bash
-uname -a
-hostname
-```
-
----
-
-## 3️⃣ Install Docker (Clean Installation)
-
-**Objective**: Install Docker without dependency conflicts
-
-### Step 1: Update system
-
-```bash
-sudo apt-get update
-sudo apt-get upgrade -y
-```
-
-### Step 2: Download Docker script
-
-```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-```
-
-### Step 3: Execute installation
-
-```bash
-sudo sh get-docker.sh
-```
-
-Installs Docker Engine, CLI, and container runtime with all dependencies.
-
-### Step 4: Add user to Docker group
-
-```bash
-sudo usermod -aG docker $(whoami)
-newgrp docker
-```
-
-Allows running Docker without `sudo`.
-
-### Step 5: Verify installation
-
-```bash
-docker --version
-docker ps
-```
-
-Expected output:
-```
-Docker version 24.X.X, build XXXXX
-CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
-```
-
----
-
-## 4️⃣ Download Project Code
-
-**Objective**: Clone and prepare the application
-
-```bash
-git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
-cd Predictive-Maintenance-MLOps
-git checkout test-deploy
-
-# Verify structure
-ls -la
-```
-
-Expected files: `Dockerfile`, `docker-compose.yml`, `models/`, `src/`, `terraform/`
-
----
-
-## 5️⃣ Deploy the Architecture
-
-**Objective**: Launch all microservices (Redis, Producer, Workers)
-
-### Step 1: Build and start containers
-
-```bash
-docker compose up -d --build
-```
-
-- `-d`: Run in detached mode (background)
-- `--build`: Rebuild images from Dockerfile
-
-### Step 2: Wait for initialization (~30 seconds)
-
-System initializes:
-- Application image build
-- Redis image pull
-- Container startup
-- Redis streams creation
-- ML model loading
-
-### Step 3: Verify all services running
-
-```bash
-docker ps
-```
-
-Expected: 3+ containers (Redis, Productor, Workers)
-
-### Step 4: Check initialization logs
-
-```bash
-docker compose logs setup-redis
-```
-
-Look for: `✅ El modelo de árbol de decisión ha sido cargado en Redis`
-
----
-
-## 6️⃣ Demonstrate Scalability
-
-**Objective**: Scale worker services to process data in parallel
-
-### Step 1: Scale to 3 workers
-
-```bash
-docker compose up -d --scale worker=3
-```
-
-- Adds additional worker containers
-- Keeps existing services running
-- Workers automatically join consumer group
-- Load distributed across all workers
-
-### Step 2: Verify scaling
-
-```bash
-docker ps
-```
-
-Now shows 3 worker containers plus Redis and Productor.
-
-### Step 3: Verify load distribution
-
-```bash
-docker compose logs worker
-```
-
-Output from multiple workers processing different messages.
-
----
-
-## 7️⃣ Real-Time Monitoring
-
-**Objective**: View live telemetry data, alerts, and metrics
-
-### Step 1: Monitor producer
-
-```bash
-docker compose logs -f productor
-```
-
-Expected output:
-```
-[PRODUCTOR]: Conectado a servidor Redis. PONG
-[PRODUCTOR]: Enviando datos de sensores... ID: 1234567890-0
-```
-
-Press `Ctrl+C` to exit.
-
-### Step 2: Monitor worker alerts
-
-```bash
-docker compose logs -f worker
-```
-
-Look for critical alerts:
-```
-[worker_1] ¡ALERTA CRÍTICA! Fallo detectado.
-[worker_2] ¡ALERTA CRÍTICA! Fallo detectado.
-```
-
-### Step 3: Combined monitoring
-
-```bash
-docker compose logs -f --timestamps
-```
-
-### Step 4: Advanced Redis monitoring
-
-```bash
-docker exec -it redis-server redis-cli
-
-# Inside redis-cli:
-XLEN input_stream              # Telemetry count
-XLEN registro_alertas          # Alert count
-XREAD COUNT 5 STREAMS input_stream 0
-```
-
-### Step 5: Resource monitoring
-
-```bash
-docker stats --no-stream
-```
-
-Shows CPU, memory, network usage for each container.
-
----
-
-## 8️⃣ Cleanup and Shutdown
-
-**Objective**: Gracefully stop services and destroy resources
-
-### Step 1: Stop containers
-
-```bash
-docker compose stop
-```
-
-### Step 2: Remove containers
-
-```bash
-docker compose down
-```
-
-### Step 3: Clean volumes (optional)
-
-```bash
-docker compose down -v
-```
-
-⚠️ **Warning**: This deletes all persisted data including Redis streams.
-
-### Step 4: Destroy Azure infrastructure
-
-```bash
-cd terraform
-terraform destroy
-```
-
-Confirmation prompt: Type `yes` and press Enter.
-
-**Wait for completion** (~5-10 minutes):
-```
-Destroy complete! Resources: X destroyed.
-```
-
-### Step 5: Verify destruction
-
-```bash
-terraform state list        # Should be empty
-```
-
-Also verify in Azure Portal - Resource Group should be deleted.
-
----
-
-## 🔍 Complete Workflow Summary
-
-```bash
-# 1. Provision Infrastructure
-cd terraform
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-AZURE_VM_IP=$(terraform output -raw vm_public_ip)
-
-# 2. Connect to VM
-ssh -i ~/.ssh/id_rsa adminuser@$AZURE_VM_IP
-
-# 3. Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $(whoami)
-newgrp docker
-
-# 4. Deploy Application
-git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
-cd Predictive-Maintenance-MLOps
-git checkout test-deploy
-
-# 5. Launch System
-docker compose up -d --build
-
-# 6. Scale Workers
-docker compose up -d --scale worker=3
-
-# 7. Monitor (in separate terminals)
-docker compose logs -f productor
-docker compose logs -f worker
-docker stats
-
-# 8. Cleanup
-docker compose down
-docker compose down -v
-cd terraform
-terraform destroy
-```
-
----
-
-## ⚠️ Troubleshooting
-
-### Terraform Authentication Failed
-
-```bash
-az login
-az account show
-```
-
-Ensure subscription is active and you have permissions.
-
-### SSH Connection Refused
-
-```bash
-# Verify security group allows SSH (port 22)
-# Check VM status in Azure Portal
-echo $AZURE_VM_IP
-```
-
-### Docker Daemon Not Responding
-
-```bash
-sudo systemctl restart docker
-sudo usermod -aG docker $(whoami)
-newgrp docker
-```
-
-### Containers Won't Start
-
-```bash
-docker compose logs              # Check error messages
-docker compose up -d --build     # Rebuild images
-df -h                            # Check disk space
-```
-
----
-
-## 📚 Additional Help
-
-- **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Local Testing**: [Quick Start](#quick-start) section
-- **Issues**: [GitHub Issues](https://github.com/alay-maker/Predictive-Maintenance-MLOps/issues)
