@@ -16,3 +16,9 @@ data/processed/*
 
 # Archivos de entorno local
 .env
+
+# Ignorar archivos de Terraform dentro de la subcarpeta
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
