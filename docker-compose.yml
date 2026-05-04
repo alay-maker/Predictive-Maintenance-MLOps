@@ -23,7 +23,9 @@ services:
         condition: service_started
     environment:
       - REDIS_HOST=redis-db
-    # En producción eliminamos los volúmenes de código para usar los del Dockerfile
+    # Añadimos el volumen para leer el modelo modificado (Zero-Downtime)
+    volumes:
+      - ./models:/app/models
     networks:
       - predictive-net
 
