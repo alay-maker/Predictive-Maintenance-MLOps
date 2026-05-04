@@ -62,4 +62,4 @@ jobs:
             # MEJORA: Uso de 'docker compose' (V2) sin guion para mayor compatibilidad
             # con instalaciones modernas de Docker y soporte de condiciones en depends_on.
             sudo docker compose down
-            sudo docker compose up --build -d
+            sudo docker compose up --build -d scale worker=3
