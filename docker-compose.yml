@@ -55,7 +55,7 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - predictive-net
-    restart: on-failure
+    restart: on-failure 
 
 networks:
   predictive-net:
