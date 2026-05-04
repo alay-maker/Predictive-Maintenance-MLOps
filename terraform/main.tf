@@ -4,7 +4,7 @@ provider "azurerm" {
 
 resource "azurerm_resource_group" "mlops_rg" {
   name     = "MLOps-Predictive-Maintenance"
-  location = "West Europe" 
+  location = "Spain Central" # Región preferida para cuentas de estudiantes en España
 }
 
 resource "azurerm_virtual_network" "mlops_vnet" {
@@ -25,7 +25,8 @@ resource "azurerm_public_ip" "mlops_ip" {
   name                = "mlops-public-ip"
   location            = azurerm_resource_group.mlops_rg.location
   resource_group_name = azurerm_resource_group.mlops_rg.name
-  allocation_method   = "Dynamic"
+  sku                 = "Standard"
+  allocation_method   = "Static" 
 }
 
 resource "azurerm_network_security_group" "mlops_nsg" {
@@ -68,14 +69,13 @@ resource "azurerm_linux_virtual_machine" "mlops_vm" {
   name                = "mlops-vm"
   resource_group_name = azurerm_resource_group.mlops_rg.name
   location            = azurerm_resource_group.mlops_rg.location
-  size                = "Standard_B1s"
+  size                = "Standard_B2ats_v2"
   admin_username      = "adminuser"
   
   network_interface_ids = [
     azurerm_network_interface.mlops_nic.id,
   ]
 
-  # Seguridad por SSH, sin contraseñas en texto plano
   disable_password_authentication = true
   admin_ssh_key {
     username   = "adminuser"
@@ -97,17 +97,22 @@ resource "azurerm_linux_virtual_machine" "mlops_vm" {
   custom_data = base64encode(<<-EOF
               #!/bin/bash
               apt-get update
-              apt-get install -y docker.io docker-compose git
+              apt-get install -y git curl
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
               systemctl start docker
               systemctl enable docker
               usermod -aG docker adminuser
+              mkdir -p /home/adminuser/predictive-maintenance
+              chown adminuser:adminuser /home/adminuser/predictive-maintenance
               EOF
   )
 }
 
 data "azurerm_public_ip" "mlops_ip_data" {
   name                = azurerm_public_ip.mlops_ip.name
-  resource_group_name = azurerm_linux_virtual_machine.mlops_vm.resource_group_name
+  resource_group_name = azurerm_resource_group.mlops_rg.name
+  depends_on          = [azurerm_linux_virtual_machine.mlops_vm]
 }
 
 output "ip_publica_del_servidor" {
