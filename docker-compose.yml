@@ -1,16 +1,19 @@
 version: '3.8'
 
 services:
-  # 1. Base de datos (Imagen oficial de Redis, sin configurar nada a mano)
+  # 1. Base de datos con PERSISTENCIA
   redis-db:
     image: redis:7-alpine
     container_name: redis-server
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data  # Para no perder los datos si el server se reinicia
     networks:
       - predictive-net
+    restart: always
 
-  # 2. Servicio de inicialización (Carga el modelo JSON en Redis y se apaga)
+  # 2. Servicio de inicialización
   setup-redis:
     build: .
     container_name: python-setup
@@ -20,13 +23,11 @@ services:
         condition: service_started
     environment:
       - REDIS_HOST=redis-db
-    volumes:
-      - ./src:/app/src
-      - ./models:/app/models
+    # En producción eliminamos los volúmenes de código para usar los del Dockerfile
     networks:
       - predictive-net
 
-  # 3. El Productor (Inyecta los datos de los sensores)
+  # 3. El Productor
   productor:
     build: .
     container_name: python-productor
@@ -37,13 +38,11 @@ services:
     environment:
       - REDIS_HOST=redis-db
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./src:/app/src
-      - ./data:/app/data
     networks:
       - predictive-net
+    restart: on-failure
 
-  # 4. El Worker (Motor de inferencia)
+  # 4. El Worker
   worker:
     build: .
     container_name: python-worker
@@ -54,12 +53,13 @@ services:
     environment:
       - REDIS_HOST=redis-db
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./src:/app/src
-      - ./models:/app/models
     networks:
       - predictive-net
+    restart: on-failure
 
 networks:
   predictive-net:
     driver: bridge
+
+volumes:
+  redis_data: # Definimos el volumen para Redis
