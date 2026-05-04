@@ -46,5 +46,5 @@
 
 - **Sprint 1 (23 Mar - 06 Abr):** 18 puntos completados
 - **Sprint 2 (06 Abr - 20 Abr):** 13 puntos completados (Incluyendo escalabilidad)
-- **Sprint 3 (20 Abr - 04 May):** 18 puntos completados (Incluyendo refactorización Zero-Downtime)
+- **Sprint 3 (20 Abr - 04 May):** 18 puntos completados (Incluyendo refactorización para Interrupción Mínima)
 - **Total: 49 puntos de historia**
