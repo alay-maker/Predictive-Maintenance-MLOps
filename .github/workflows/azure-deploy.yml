@@ -2,9 +2,10 @@ name: MLOps CI/CD Pipeline
 
 on:
   push:
-    branches: [ "ajustes_azure" ]
+    # 💡 Añadimos ambas ramas para que funcione ahora y en la entrega final
+    branches: [ "ajustes_azure", "main" ]
   pull_request:
-    branches: [ "ajustes_azure" ]
+    branches: [ "main" ]
 
 jobs:
   test:
@@ -32,7 +33,8 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # 💡 CORRECCIÓN: Permite desplegar si estamos en 'ajustes_azure' o en 'main'
+    if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main') && github.event_name == 'push'
     
     steps:
       - name: Descargar código
