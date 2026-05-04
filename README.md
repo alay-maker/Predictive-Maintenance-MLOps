@@ -123,17 +123,17 @@ Predictive-Maintenance-MLOps/
 │          Predictive Maintenance System              │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
-│  ┌──────────┐    ┌─────────────┐    ┌──────────┐  │
-│  │Producer  │───▶│Redis Streams│◀───│ Workers  │  │
-│  └──────────┘    └─────────────┘    └──────────┘  │
-│       │                 │                   │      │
-│  Telemetry        Message Queue      ML & Alerts  │
-│   Data            Persistence                     │
+│  ┌──────────┐     ┌─────────────┐    ┌──────────┐   │
+│  │Producer  │───▶│Redis Streams│◀───│ Workers  │   │
+│  └──────────┘     └─────────────┘    └──────────┘   │
+│       │                 │                   │       │
+│  Telemetry        Message Queue      ML & Alerts    │
+│   Data            Persistence                       │
 │                                                     │
-│      Configuration & Setup (setup_redis.py)        │
-│   • Redis streams initialization                   │
-│   • ML model loading                               │
-│   • Alert threshold configuration                  │
+│      Configuration & Setup (setup_redis.py)         │
+│   • Redis streams initialization                    │
+│   • ML model loading                                │
+│   • Alert threshold configuration                   │
 │                                                     │
 └─────────────────────────────────────────────────────┘
 ```
