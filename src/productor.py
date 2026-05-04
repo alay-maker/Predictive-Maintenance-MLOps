@@ -19,7 +19,7 @@ def main():
         for id, data in test_data.iterrows():
             # Genera un Redis stream en caso de no existir y añade las mediciones
             event_id = cliente_redis.xadd(name="input_stream", fields=data.to_dict(), maxlen=10000, approximate=True)
-            time.sleep(1)
+            time.sleep(0.5)
 
     except KeyboardInterrupt:
         print("\nFresadora detenida manualmente por el usuario.")
