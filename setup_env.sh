@@ -38,7 +38,6 @@ fi
 
 # 4. Inicia sesión en Azure usando código de dispositivo
 echo "🔑 Abriendo conexión con Azure..."
-echo "👉 Copia el código que aparecerá a continuación en: https://microsoft.com/devicelogin"
 az login --use-device-code
 
 echo "-------------------------------------------------------------------"
