@@ -15,9 +15,9 @@ def main():
                 cliente_redis = redis.Redis(host=host_redis, port=6379, db=0, decode_responses=True)
                 cliente_redis.ping()
                 break
-    except redis.ConnectionError:
-        print(f"[PRODUCTOR]: Redis no disponible, reintento {intento+1}/5...")
-        time.sleep(3)
+            except redis.ConnectionError:
+                print(f"[PRODUCTOR]: Redis no disponible, reintento {intento+1}/5...")
+                time.sleep(3)
 
         # Carga datos reservados durante el proceso de entrenamiento
         df = pd.read_csv('data/processed/datos_sensores_test.csv')
