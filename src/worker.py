@@ -51,6 +51,7 @@ def main():
                 for id_mensaje, datos in mensajes:
                     nodo_actual = "nodo:0" 
                     try:
+                        procesado = False
                         while True:
                             info_nodo = cliente_redis.hgetall(nodo_actual)
                             if not info_nodo:
@@ -66,6 +67,7 @@ def main():
                                     }
                                     cliente_redis.lpush(STREAM_ALERTAS, json.dumps(alerta))
                                     print(f"[{NOMBRE_WORKER}] ¡ALERTA CRÍTICA! Fallo detectado. (ID: {id_mensaje})")
+                                procesado = True
                                 break 
                                 
                             elif info_nodo['tipo'] == 'decision':
@@ -77,8 +79,8 @@ def main():
                                     nodo_actual = info_nodo['hijo_menor_igual']
                                 else:
                                     nodo_actual = info_nodo['hijo_mayor']
-                        
-                        cliente_redis.xack(NOMBRE_STREAM, GRUPO_TRABAJO, id_mensaje)
+                        if procesado:
+                            cliente_redis.xack(NOMBRE_STREAM, GRUPO_TRABAJO, id_mensaje)
                     except Exception as e:
                         print(f"[{NOMBRE_WORKER}] ERROR procesando mensaje {id_mensaje}: {e}")
 
