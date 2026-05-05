@@ -9,11 +9,6 @@ ENV PYTHONPATH=/app
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema si fueran necesarias (ej: gcc para algunas librerías de ML)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copiar solo requirements primero para aprovechar la caché de capas de Docker
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
