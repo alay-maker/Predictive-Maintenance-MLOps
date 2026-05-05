@@ -6,6 +6,7 @@ on:
     branches: [ "ajustes_azure", "main", "test-deploy", "zero-downtime" ]
   pull_request:
     branches: [ "main", "zero-downtime" ]
+    workflow_dispatch:
 
 jobs:
   test:
