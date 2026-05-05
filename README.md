@@ -1,63 +1,142 @@
-# Predictive Maintenance MLOps
+# 🔧 Predictive Maintenance MLOps
 
 > **Real-time Industrial Equipment Telemetry Classification and Predictive Maintenance System**
 
 A production-grade MLOps platform for ingesting, processing, and classifying real-time telemetry data from industrial machinery using Redis streams, machine learning models, and containerized microservices.
 
+![CI/CD](https://github.com/alay-maker/Predictive-Maintenance-MLOps/actions/workflows/azure-deploy.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 ---
 
 ## 📋 Quick Navigation
 
-- **[🚀 Quick Start](#quick-start)** - Get running in 5 minutes
-- **[☁️ Azure Deployment](#azure-deployment)** - Production cloud setup
-- **[📐 Architecture Diagrams](ARCHITECTURE.md)** - Visual system design
+- [🚀 Quick Start](#-quick-start) - Get running locally in 5 minutes
+- [☁️ Cloud Deployment Pipeline](#️-cloud-deployment-pipeline-azure-cicd) - Automated Azure CI/CD Workflow
+- [📐 Architecture](#️-system-architecture) - Visual system design
 
 ---
 
 ## 🎯 Overview
 
-This project implements a **real-time predictive maintenance system** for industrial manufacturing equipment (CNC machines, mills, etc.). The system:
+This project implements a real-time predictive maintenance system for industrial manufacturing equipment (CNC machines, mills, etc.). The system:
 
-- **Ingests** high-frequency telemetry data from industrial sensors
-- **Processes** streaming data using Redis as a distributed event broker
-- **Classifies** equipment status using pre-trained machine learning models
-- **Generates** real-time alerts when anomalies are detected
-- **Scales** horizontally through containerized worker nodes
+- Ingests high-frequency telemetry data from industrial sensors
+- Processes streaming data using Redis as a distributed event broker
+- Classifies equipment status using pre-trained machine learning models
+- Generates real-time alerts when anomalies are detected
+- Scales horizontally through containerized worker nodes
 
 ### Key Features
 
 - ✅ Real-time data streaming with Redis streams
-- ✅ Horizontally scalable worker architecture
-- ✅ ML-powered anomaly detection
+- ✅ Horizontally scalable worker architecture with true zero-downtime updates
+- ✅ ML-powered anomaly detection (decision tree via Redis)
 - ✅ Containerized with Docker & Docker Compose
 - ✅ Infrastructure as Code (Terraform)
-- ✅ Automated Azure deployment with GitHub Actions
+- ✅ Automated Azure deployment with GitHub Actions CI/CD
 
 ---
 
 ## 📦 Prerequisites
 
 ### Local Development
-- Python 3.11+ | Redis 7.0+ | Docker 1.29+
+
+| Tool | Version |
+|------|---------|
+| Python | 3.11+ |
+| Redis | 7.0+ |
+| Docker Compose | v2+ |
 
 ### Cloud Deployment
-- Azure CLI | Terraform 1.0+ | SSH Key Pair | Active Azure Subscription
 
-### System Requirements
-- **Minimum**: 2 CPU cores, 4 GB RAM, 10 GB storage
-- **Recommended**: 4+ CPU cores, 8+ GB RAM, 20 GB storage
+- Development environment (Codespace or local) with **Azure CLI** and **Terraform** installed
+- SSH Key Pair generated
+- **GitHub Secrets** configured: SSH keys and Azure credentials must be added to your repository's Secrets
 
 ---
 
-## 🚀 Quick Start
+## ☁️ Cloud Deployment Pipeline (Azure CI/CD)
 
-### Option 1: Docker Compose (Development)
+The system is designed for a **100% automated MLOps deployment**. Below are the steps to provision the infrastructure, deploy the code, and test the CI/CD pipeline in a production Azure environment.
+
+### 1. Infrastructure Provisioning (Terraform)
+
+First, generate the network and the Ubuntu virtual machine in Azure.
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply -auto-approve
+```
+
+> **Note:** Upon completion, Terraform will output the VM's public IP. This IP must be saved in your GitHub Secrets so the CI/CD pipeline can connect.
+
+### 2. Initial Deployment (GitHub Actions)
+
+Once the machine is created, force the pipeline execution to install Docker and spin up the microservices:
+
+```bash
+git add .
+git commit -m "deploy: aprovisionamiento inicial"
+git push origin main
+```
+
+The GitHub workflow will execute coverage tests (`pytest`) and perform the automated deployment via SSH.
+
+### 3. Worker Monitoring
+
+To verify that the data flow is correct, access the Azure machine via SSH to read the logs in real-time:
+
+```bash
+ssh adminuser@<IP_DE_AZURE>
+cd predictive-maintenance
+sudo docker compose ps
+sudo docker compose logs -f worker
+```
+
+### 4. Model Update (Zero-Downtime)
+
+The system supports updating the ML model without interrupting active workers. The pipeline uses an atomic file swap + `--no-recreate` strategy so running workers are never stopped.
+
+1. Modify a threshold in the `models/tree_model.json` file
+2. Push the changes to the repository:
+
+```bash
+git add models/tree_model.json
+git commit -m "mlops: actualizacion de umbrales del modelo"
+git push origin main
+```
+
+> Workers kept open from Step 3 will continue processing messages uninterrupted and automatically pick up the new model once `setup-redis` finishes reloading.
+
+> **Note on scaling:** The pipeline deploys with a fixed `--scale` value. If you manually scaled workers on the VM (e.g. to 5), set the `--scale` in the workflow to match or remove it to avoid workers being terminated to meet the target count.
+
+### 5. Environment Cleanup
+
+To clean up the cloud environment (delete containers and destroy Azure resources to avoid costs):
+
+```bash
+# On the SSH server:
+sudo docker compose down -v
+exit
+
+# On your local terminal (terraform folder):
+terraform destroy -auto-approve
+```
+
+---
+
+## 🚀 Quick Start (Local Development)
+
+### Option 1: Docker Compose
 
 ```bash
 # Clone and setup
 git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
 cd Predictive-Maintenance-MLOps
-git checkout main  # Use current branch
 
 # Run the system
 docker compose up -d --build
@@ -72,7 +151,7 @@ docker compose up -d --scale worker=3
 docker compose down -v
 ```
 
-### Option 2: Local Python
+### Option 2: Local Python Environment
 
 ```bash
 # Install dependencies
@@ -87,122 +166,59 @@ python src/productor.py
 # Terminal 2+: Workers
 python src/worker.py worker_1
 python src/worker.py worker_2
-
-# Clean test data
-python src/borrar_datos.py
 ```
 
 ---
 
 ## 📁 Project Structure
 
-```
 Predictive-Maintenance-MLOps/
-├── src/                          # Application source code
-│   ├── setup_redis.py           # Redis initialization & model loading
-│   ├── productor.py             # Telemetry data generator
-│   ├── worker.py                # Stream consumer & ML classifier
-│   └── borrar_datos.py          # Cleanup utility
-├── models/                      # Pre-trained ML models
-├── terraform/                   # Azure infrastructure as code
-├── tests/                       # Unit tests (pytest)
-├── .github/workflows/           # GitHub Actions CI/CD
-├── Dockerfile                   # Container definition
-├── docker-compose.yml           # Multi-container orchestration
-├── requirements.txt             # Python dependencies
-├── ARCHITECTURE.md              # Detailed system design 📐
-└── README.md                    # This file
-```
+├── src/ # Application source code
+│ ├── setup_redis.py # Redis initialization & model loading
+│ ├── productor.py # Telemetry data generator
+│ └── worker.py # Stream consumer & ML classifier
+├── models/ # Pre-trained ML models (tree_model.json)
+├── data/ # Dataset files
+├── notebooks/ # Jupyter notebooks (EDA & model training)
+├── docs/ # Additional documentation
+├── terraform/ # Azure infrastructure as code
+├── tests/ # Unit tests (pytest)
+├── .github/workflows/ # GitHub Actions CI/CD
+├── Dockerfile # Container definition
+├── docker-compose.yml # Multi-container orchestration
+├── setup_env.sh # Environment setup helper
+├── apagar_azure.sh # Azure teardown helper script
+├── presentacion.html # Project presentation slides
+├── ARCHITECTURE.md # Detailed system design 📐
+└── README.md # This file
+
+text
 
 ---
 
 ## 🏗️ System Architecture
 
-```
 ┌─────────────────────────────────────────────────────┐
-│          Predictive Maintenance System              │
+│ Predictive Maintenance System                       │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
-│  ┌──────────┐     ┌─────────────┐    ┌──────────┐   │
-│  │Producer  │───▶│Redis Streams│◀───│ Workers  │   │
-│  └──────────┘     └─────────────┘    └──────────┘   │
-│       │                 │                   │       │
-│  Telemetry        Message Queue      ML & Alerts    │
-│   Data            Persistence                       │
+│ ┌──────────┐     ┌─────────────┐    ┌──────────┐    │
+│ │Producer  │───▶│Redis Streams│◀───│ Workers  │    │
+│ └──────────┘     └─────────────┘    └──────────┘    │
+│       │                 │                 │         │
+│ Telemetry Message Queue ML & Alerts                 │
+│ Data Persistence                                    │
 │                                                     │
-│      Configuration & Setup (setup_redis.py)         │
-│   • Redis streams initialization                    │
-│   • ML model loading                                │
-│   • Alert threshold configuration                   │
+│ Configuration & Setup (setup_redis.py)              │
+│ - Redis streams initialization                      │
+│ - ML model loading (atomic pipeline)                │
+│ - Alert threshold configuration                     │
 │                                                     │
 └─────────────────────────────────────────────────────┘
-```
 
-**[📐 See ARCHITECTURE.md for complete system design, data flows, and scaling strategies](#)**
+text
 
----
-
-## ☁️ Azure Deployment
-
-### Two Deployment Options
-
-#### Option A: Manual Deployment
-
-Complete step-by-step guide:
-
-1. **Infrastructure**: `terraform apply` creates VM & networking
-2. **SSH Connection**: Connect securely to Azure VM
-3. **Docker Setup**: Install Docker on the VM
-4. **Code Deploy**: Clone repository
-5. **System Launch**: Start microservices with Docker Compose
-6. **Scaling**: Demonstrate worker scaling
-7. **Monitoring**: View real-time logs & metrics
-8. **Cleanup**: Destroy resources
-
-See [Detailed Manual Deployment Guide](#manual-deployment-steps) below.
-
-#### Option B: Automated Deployment (Recommended)
-
-**Automatic deployment with GitHub Actions:**
-
-```bash
-# 1. Prepare Terraform and save outputs
-cd terraform
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-
-# Terraform outputs:
-# - AZURE_VM_IP (public IP)
-# - SSH_KEY (private key path)
-```
-
-```bash
-# 2. Add GitHub Secrets (one-time setup)
-# Go to: Settings → Secrets and variables → Actions → New repository secret
-
-# Add these secrets:
-# AZURE_VM_IP = "20.XX.XXX.XX"  (from terraform output)
-# SSH_PRIVATE_KEY = (content of ~/.ssh/id_rsa)
-# AZURE_SUBSCRIPTION_ID = (your Azure subscription ID)
-```
-
-```bash
-# 3. Trigger automatic deployment
-git add .
-git commit -m "deploy: trigger automated Azure deployment"
-git push origin main
-
-# GitHub Actions automatically:
-# ✅ Connects to Azure VM via SSH
-# ✅ Installs Docker
-# ✅ Clones this repository
-# ✅ Starts Docker Compose
-# ✅ Scales workers
-# ✅ Validates system is running
-```
-
-**Check deployment status:** Actions tab in GitHub
+📐 [See ARCHITECTURE.md for complete system design, data flows, and scaling strategies](ARCHITECTURE.md)
 
 ---
 
@@ -210,7 +226,7 @@ git push origin main
 
 ### Environment Variables
 
-```bash
+```env
 # Redis
 REDIS_HOST=redis-db              # Redis server hostname
 REDIS_PORT=6379                  # Redis port
@@ -220,15 +236,16 @@ REDIS_DB=0                       # Database number
 PYTHONUNBUFFERED=1               # Real-time logging
 PYTHONPATH=/app                  # Module path
 
-# Worker
-WORKER_ID=worker_docker          # Worker identifier
-BATCH_SIZE=50                    # Messages per iteration
-POLL_INTERVAL=1000               # Poll frequency (ms)
+# Worker (optional overrides)
+STREAM_NAME=input_stream         # Input stream name
+GROUP_NAME=equipo_triaje         # Consumer group name
+ALERT_STREAM=registro_alertas    # Alerts output stream
 ```
 
 ### Data Streams
 
-**telemetria stream** (telemetry - 1 week TTL):
+**`input_stream`** — telemetry input from sensors:
+
 ```json
 {
   "timestamp": "2026-05-04T10:30:45.123Z",
@@ -240,14 +257,13 @@ POLL_INTERVAL=1000               # Poll frequency (ms)
 }
 ```
 
-**alertas stream** (alerts - 30 day TTL):
+**`registro_alertas`** — anomaly alerts (Redis list):
+
 ```json
 {
-  "timestamp": "2026-05-04T10:30:46.001Z",
-  "equipment_id": "fresadora-1",
-  "alert_type": "ANOMALY",
-  "severity": 0.85,
-  "message": "Equipment vibration above threshold"
+  "timestamp": "2026-05-04 10:30:46",
+  "id_mensaje_origen": "1714819846001-0",
+  "datos_sensor": { "temperatura": "75.5", "vibracion": "2.3" }
 }
 ```
 
@@ -259,7 +275,7 @@ POLL_INTERVAL=1000               # Poll frequency (ms)
 
 ```bash
 docker compose logs -f              # All services
-docker compose logs -f productor    # Specific service
+docker compose logs -f worker       # Workers only
 docker stats                        # Resource usage
 ```
 
@@ -269,39 +285,22 @@ docker stats                        # Resource usage
 docker exec -it redis-server redis-cli
 
 # Inside redis-cli:
-XLEN telemetria                  # Telemetry count
-XLEN alertas                     # Alert count
-XINFO STREAM telemetria          # Stream info
+XLEN input_stream                # Pending telemetry messages
+LLEN registro_alertas            # Total alerts generated
+XINFO STREAM input_stream        # Stream metadata
+XINFO GROUPS input_stream        # Consumer group status
 ```
-
-### Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| Redis connection refused | `docker compose restart redis-db` |
-| Consumer group missing | `docker compose restart setup-redis` |
-| Worker crashes | `docker compose up -d --build` |
-| No data flowing | `docker compose logs productor` |
 
 ---
 
 ## 🛠️ Development
 
-### Setup
-
-```bash
-python -m venv venv
-source venv/bin/activate           # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-pip install pytest pytest-cov black flake8 mypy
-```
-
 ### Testing
 
 ```bash
 pytest                             # Run all tests
-pytest --cov=src tests/            # With coverage
-pytest -v tests/test_worker.py     # Specific file
+pytest --cov=src tests/            # With coverage report
+pytest --cov=src --cov-fail-under=70 tests/   # Enforce 70% minimum
 ```
 
 ### Code Quality
@@ -310,84 +309,6 @@ pytest -v tests/test_worker.py     # Specific file
 black src/ tests/                  # Format code
 flake8 src/ tests/                 # Style check
 mypy src/                          # Type checking
-```
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/name`
-3. Make changes and test locally
-4. Commit: `git commit -m "feat: description"`
-5. Push: `git push origin feature/name`
-6. Create Pull Request
-
----
-
----
-
-# Manual Deployment Steps
-
-Complete guide for step-by-step Azure deployment.
-
-## 1️⃣ Provision Infrastructure with Terraform
-
-```bash
-cd terraform
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-
-# Save outputs:
-AZURE_VM_IP=$(terraform output -raw vm_public_ip)
-echo "VM IP: $AZURE_VM_IP"
-```
-
-## 2️⃣ Connect to Azure VM
-
-```bash
-ssh -i ~/.ssh/id_rsa adminuser@$AZURE_VM_IP
-```
-
-## 3️⃣ Install Docker
-
-```bash
-sudo apt-get update && sudo apt-get upgrade -y
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $(whoami)
-newgrp docker
-docker --version
-```
-
-## 4️⃣ Deploy Application
-
-```bash
-git clone https://github.com/alay-maker/Predictive-Maintenance-MLOps.git
-cd Predictive-Maintenance-MLOps
-git checkout main
-docker compose up -d --build
-```
-
-## 5️⃣ Scale Workers
-
-```bash
-docker compose up -d --scale worker=3
-```
-
-## 6️⃣ Monitor System
-
-```bash
-docker compose logs -f
-```
-
-## 7️⃣ Cleanup
-
-```bash
-docker compose down -v
-cd terraform
-terraform destroy
 ```
 
 ---
@@ -403,13 +324,13 @@ terraform destroy
 
 ## 📄 License
 
-MIT License - See [LICENSE](LICENSE) file for details
+MIT License — See [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 👥 Authors
 
-- **alay-maker** - [GitHub Profile](https://github.com/alay-maker)
-- **Colaborador** - [GitHub Profile](https://github.com/colaborador)
+- **alay-maker** — [GitHub Profile](https://github.com/alay-maker)
+- **ExcellentApproximation** — [GitHub Profile](https://github.com/ExcellentApproximation)
 
-**Last Updated**: May 4, 2026 | **Status**: Active Development
+![Status](https://img.shields.io/badge/status-active%20development-brightgreen)
