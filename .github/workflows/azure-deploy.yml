@@ -5,7 +5,7 @@ on:
     # Se activa en ambas ramas para facilitar pruebas y entrega final
     branches: [ "ajustes_azure", "main", "test-deploy", "zero-downtime" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "zero-downtime" ]
 
 jobs:
   test:
