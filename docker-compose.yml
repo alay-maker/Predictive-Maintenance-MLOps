@@ -12,7 +12,7 @@ services:
     restart: always
 
   # 2. Servicio de inicialización
-    setup-redis:
+  setup-redis:
     build: .
     container_name: python-setup
     command: python src/setup_redis.py
