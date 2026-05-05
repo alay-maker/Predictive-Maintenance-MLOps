@@ -28,7 +28,7 @@ def preparar_base_datos():
         if nodos_antiguos:
             pipe.delete(*nodos_antiguos)
             print(f"######## Actualizando modelo en Redis ########")
-            print("    - Eliminando {len(nodos_antiguos)} nodos de Redis")
+            print(f"    - Eliminando {len(nodos_antiguos)} nodos de Redis")
             
         for key, value in diccionario_nodos.items():
             pipe.hset(name=key, mapping=value)
