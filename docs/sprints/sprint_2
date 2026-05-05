@@ -1,0 +1,42 @@
+# Sprint 2 — Planning y Ejecución
+
+**Fechas:** 06/04/2026 – 20/04/2026  
+**Objetivo del Sprint:** Asegurar el proyecto (Testing) y empaquetar la arquitectura en microservicios aislados.
+
+---
+
+## Sprint Backlog
+
+| ID   | Historia de Usuario | Estimación | Estado | Etiquetas |
+|------|---------------------|-----------|--------|-----------|
+| US-04 | Contenerización con Docker | 5 | ✅ Done | devops, docker |
+| US-05 | Calidad de Código y Testing | 5 | ✅ Done | testing, tech-debt |
+
+**Capacidad del sprint:** 10 puntos planificados → 10 completados.[cite: 11]
+
+---
+
+## Tareas técnicas (Tasks)
+
+### US-04 — Contenerización con Docker
+- [x] Crear `Dockerfile` basado en Python 3.11 slim.
+- [x] Redactar `docker-compose.yml` para levantar los 4 servicios (`redis-db`, `setup-redis`, `productor`, `worker`).
+- [x] Configurar red bridge y persistencia de volúmenes para Redis.
+- [x] *Bugfix:* Eliminar nombres estáticos para permitir escalabilidad `--scale worker=N`.
+
+### US-05 — Calidad de Código y Testing
+- [x] Instalar dependencias de testing (`pytest`, `pytest-cov`).
+- [x] Escribir pruebas unitarias para productor y workers.
+- [x] Refactorizar código (Tech-debt) para asegurar que la cobertura supera el requisito del Máster (70%).
+
+---
+
+## Sprint Review
+
+**Demostrado:**
+1. Se levanta toda la infraestructura con un solo comando `docker-compose up`.
+2. Se demuestra la escalabilidad lanzando múltiples workers.
+3. Tests pasando con cobertura satisfactoria en local.
+
+**Métricas del Sprint:**
+- **Velocidad:** 10 puntos.
