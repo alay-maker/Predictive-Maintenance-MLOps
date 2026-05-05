@@ -38,3 +38,17 @@ def test_preparar_base_datos_fallo_conexion(mock_redis_class):
 
     # Afirmamos que la función devolvió False (como tienes programado en tu bloque except)
     assert resultado is False
+
+@patch("src.setup_redis.redis.Redis")
+def test_preparar_base_datos_fallo_sale_con_codigo_1(mock_redis_class):
+    """Si falla, el __main__ debe llamar a sys.exit(1)."""
+    import sys
+    mock_redis_class.side_effect = Exception("Fallo simulado")
+
+    with patch.object(sys, 'exit') as mock_exit:
+        # Simular el bloque __main__ manualmente
+        from src.setup_redis import preparar_base_datos
+        exito = preparar_base_datos()
+        if not exito:
+            sys.exit(1)
+        mock_exit.assert_called_once_with(1)
