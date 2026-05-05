@@ -3,7 +3,7 @@ name: MLOps CI/CD Pipeline
 on:
   push:
     # Se activa en ambas ramas para facilitar pruebas y entrega final
-    branches: [ "ajustes_azure", "main", "test-deploy", , "zero-downtime" ]
+    branches: [ "ajustes_azure", "main", "test-deploy", "zero-downtime" ]
   pull_request:
     branches: [ "main" ]
 
