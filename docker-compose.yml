@@ -12,7 +12,7 @@ services:
     restart: always
 
   # 2. Servicio de inicialización
-  setup-redis:
+    setup-redis:
     build: .
     container_name: python-setup
     command: python src/setup_redis.py
@@ -21,11 +21,11 @@ services:
         condition: service_started
     environment:
       - REDIS_HOST=redis-db
-    # Añadimos el volumen para leer el modelo modificado (Zero-Downtime)
     volumes:
       - ./models:/app/models
     networks:
       - predictive-net
+    restart: on-failure
 
   # 3. El Productor
   productor:
