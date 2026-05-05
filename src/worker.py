@@ -4,10 +4,13 @@ import sys
 import json
 import os
 
+
+
 def main():
     host_redis = os.getenv('REDIS_HOST', 'localhost')
-    NOMBRE_STREAM = 'input_stream'
-    GRUPO_TRABAJO = 'equipo_triaje'
+    NOMBRE_STREAM  = os.getenv('STREAM_NAME',  'input_stream')
+    GRUPO_TRABAJO  = os.getenv('GROUP_NAME',   'equipo_triaje')
+    STREAM_ALERTAS = os.getenv('ALERT_STREAM', 'registro_alertas')
 
     if len(sys.argv) > 1:
         NOMBRE_WORKER = sys.argv[1]
@@ -61,7 +64,7 @@ def main():
                                         "id_mensaje_origen": id_mensaje,
                                         "datos_sensor": datos
                                     }
-                                    cliente_redis.lpush("registro_alertas", json.dumps(alerta))
+                                    cliente_redis.lpush(STREAM_ALERTAS, json.dumps(alerta))
                                     print(f"[{NOMBRE_WORKER}] ¡ALERTA CRÍTICA! Fallo detectado. (ID: {id_mensaje})")
                                 break 
                                 
