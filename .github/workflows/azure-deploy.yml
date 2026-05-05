@@ -34,7 +34,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     # Se despliega si estamos en 'ajustes_azure' o en 'main' o 'test-deploy' tras un push
-    if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test-deploy') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test-deploy' || github.ref == 'refs/heads/zero-downtime') && github.event_name == 'push'
     
     steps:
       - name: Descargar código
