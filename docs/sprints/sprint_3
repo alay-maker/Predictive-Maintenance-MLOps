@@ -1,0 +1,43 @@
+# Sprint 3 — Planning y Ejecución[cite: 11]
+
+**Fechas:** 20/04/2026 – 04/05/2026  
+**Objetivo del Sprint:** Desplegar el sistema en la nube (Microsoft Azure) de forma 100% automatizada mediante CI/CD e IaC.
+
+---
+
+## Sprint Backlog
+
+| ID   | Historia de Usuario | Estimación | Estado | Etiquetas |
+|------|---------------------|-----------|--------|-----------|
+| US-06 | IaC con Terraform | 8 | ✅ Done | infrastructure, azure |
+| US-07 | Pipeline CI/CD Automático | 5 | ✅ Done | ci-cd, automation |
+
+**Capacidad del sprint:** 13 puntos planificados → 13 completados.[cite: 11]
+
+---
+
+## Tareas técnicas (Tasks)
+
+### US-06 — IaC con Terraform
+- [x] Configurar Azure Provider.
+- [x] Crear archivo principal (`main.tf`) para levantar la Máquina Virtual Ubuntu.
+- [x] Abrir puerto 22 (SSH).
+- [x] *Bloqueante resuelto:* Configuración de claves SSH y aprovisionamiento inicial.
+
+### US-07 — Pipeline CI/CD Automático
+- [x] Crear workflow en `.github/workflows/azure-deploy.yml`.
+- [x] Configurar paso de validación: rechazar despliegue si los tests no superan el 70% de cobertura.
+- [x] Configurar copiado SSH/SCP de archivos de configuración y modelos.
+- [x] *Bugfix (Interrupción Mínima):* Modificar los `depends_on` del `docker-compose.yml` para evitar la caída de los workers al actualizar el modelo.
+
+---
+
+## Sprint Review
+
+**Demostrado:**
+1. Un `git push` a la rama `main` dispara el flujo en GitHub Actions.
+2. Los tests se validan correctamente en el entorno de la nube.
+3. Los contenedores en Azure se reconstruyen en caliente absorbiendo el nuevo modelo sin paralizar la telemetría.
+
+**Métricas del Sprint:**
+- **Velocidad:** 13 puntos.
