@@ -43,6 +43,11 @@ def test_worker_dato_normal(mock_redis_class):
             return {"tipo": "hoja", "resultado": "Normal"}
     mock_redis.hgetall.side_effect = mock_hgetall
 
+    src.worker.main()                        # ← ejecutar
+
+    mock_redis.lpush.assert_not_called()     # ← verificar que no hubo alerta
+    mock_redis.xack.assert_called_once()     # ← verificar que sí se procesó
+
 @patch("src.worker.redis.Redis")
 def test_worker_nodo_vacio_no_hace_xack(mock_redis_class):
     """Si hgetall devuelve vacío (modelo actualizándose), no debe hacer xack."""
