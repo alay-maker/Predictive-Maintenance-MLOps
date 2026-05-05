@@ -1,0 +1,47 @@
+# Sprint 1 — Planning y Ejecución
+
+**Fechas:** 23/03/2026 – 06/04/2026  
+**Objetivo del Sprint:** Tener el flujo de datos básico funcionando: desde la ingesta simulada hasta el motor de inferencia en base de datos.[cite: 11]
+
+---
+
+## Sprint Backlog
+
+| ID   | Historia de Usuario | Estimación | Estado | Etiquetas |
+|------|---------------------|-----------|--------|-----------|
+| US-01 | Ingesta de Datos con Redis Streams | 5 | ✅ Done | data-engineering, backend |
+| US-02 | Motor de Inferencia en Base de Datos | 8 | ✅ Done | machine-learning, database |
+| US-03 | Procesamiento Distribuido (Workers) | 5 | ✅ Done | backend, enhancement |
+
+**Capacidad del sprint:** 18 puntos planificados → 18 completados.[cite: 11]
+
+---
+
+## Tareas técnicas (Tasks)
+
+### US-01 — Ingesta de Datos
+- [x] Crear el script del productor.
+- [x] Simular lecturas de telemetría (fresadora) cada 0.5s.
+- [x] Enviar datos a Redis Streams.
+
+### US-02 — Motor de Inferencia
+- [x] Leer archivo `tree_model.json`.
+- [x] Crear el script de setup (`setup_redis.py`).
+- [x] Inyectar los nodos del árbol como Hashes en Redis.
+
+### US-03 — Procesamiento Distribuido (Workers)
+- [x] Crear el script del Worker.
+- [x] Leer telemetría de Redis.
+- [x] Consultar el modelo inyectado para evaluar si hay anomalías (Alertas).
+
+---
+
+## Sprint Review
+
+**Demostrado:**
+1. Productor inyectando datos correctamente.
+2. Inferencia en memoria operando sin retrasos.
+3. Workers recibiendo alertas de telemetría anómala en la terminal.
+
+**Métricas del Sprint:**
+- **Velocidad:** 18 puntos.
