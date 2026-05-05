@@ -47,32 +47,37 @@ def main():
             for stream_name, mensajes in respuesta:
                 for id_mensaje, datos in mensajes:
                     nodo_actual = "nodo:0" 
-                    
-                    while True:
-                        info_nodo = cliente_redis.hgetall(nodo_actual)
-                        if info_nodo['tipo'] == 'hoja':
-                            resultado = info_nodo.get('resultado')
-                            if resultado == 'Failure':
-                                alerta = {
-                                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                                    "id_mensaje_origen": id_mensaje,
-                                    "datos_sensor": datos
-                                }
-                                cliente_redis.lpush("registro_alertas", json.dumps(alerta))
-                                print(f"[{NOMBRE_WORKER}] ¡ALERTA CRÍTICA! Fallo detectado. (ID: {id_mensaje})")
-                            break 
-                            
-                        elif info_nodo['tipo'] == 'decision':
-                            variable = info_nodo['variable']
-                            umbral = float(info_nodo['umbral'])
-                            valor_sensor = float(datos.get(variable, 0))
-                            
-                            if valor_sensor <= umbral:
-                                nodo_actual = info_nodo['hijo_menor_igual']
-                            else:
-                                nodo_actual = info_nodo['hijo_mayor']
-                    
-                    cliente_redis.xack(NOMBRE_STREAM, GRUPO_TRABAJO, id_mensaje)
+                    try:
+                        while True:
+                            info_nodo = cliente_redis.hgetall(nodo_actual)
+                            if not info_nodo:
+                                print(f"[{NOMBRE_WORKER}] WARN: Nodo '{nodo_actual}' no encontrado. Modelo en actualización?")
+                                break
+                            if info_nodo['tipo'] == 'hoja':
+                                resultado = info_nodo.get('resultado')
+                                if resultado == 'Failure':
+                                    alerta = {
+                                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "id_mensaje_origen": id_mensaje,
+                                        "datos_sensor": datos
+                                    }
+                                    cliente_redis.lpush("registro_alertas", json.dumps(alerta))
+                                    print(f"[{NOMBRE_WORKER}] ¡ALERTA CRÍTICA! Fallo detectado. (ID: {id_mensaje})")
+                                break 
+                                
+                            elif info_nodo['tipo'] == 'decision':
+                                variable = info_nodo['variable']
+                                umbral = float(info_nodo['umbral'])
+                                valor_sensor = float(datos.get(variable, 0))
+                                
+                                if valor_sensor <= umbral:
+                                    nodo_actual = info_nodo['hijo_menor_igual']
+                                else:
+                                    nodo_actual = info_nodo['hijo_mayor']
+                        
+                        cliente_redis.xack(NOMBRE_STREAM, GRUPO_TRABAJO, id_mensaje)
+                    except Exception as e:
+                        print(f"[{NOMBRE_WORKER}] ERROR procesando mensaje {id_mensaje}: {e}")
 
     except redis.ConnectionError:
         print(f"[{NOMBRE_WORKER} ERROR]: No se pudo conectar a Redis.")
