@@ -46,10 +46,8 @@ jobs:
           host: ${{ secrets.AZURE_VM_IP }}
           username: adminuser
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          # MEJORA: Solo copiamos lo necesario para que el contenedor funcione.
-          # Esto evita subir gigas de historial de .git o carpetas de caché local.
           source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt,.dockerignore"
-          target: "/home/adminuser/predictive-maintenance"
+          target: "/home/adminuser/predictive-maintenance-tmp"
 
       - name: Desplegar Microservicios en Azure (Zero-Downtime)
         uses: appleboy/ssh-action@v1.0.3
@@ -58,12 +56,20 @@ jobs:
           username: adminuser
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
+            # 1. Swap atómico de archivos (evita lecturas en caliente)
+            rsync -a /home/adminuser/predictive-maintenance-tmp/ \
+                     /home/adminuser/predictive-maintenance/
+
             cd /home/adminuser/predictive-maintenance
-            
-            # 1. Aseguramos que la infraestructura y los workers estén corriendo. 
-            # Al no hacer 'down', los contenedores actuales no se detienen.
-            sudo docker compose up --build -d --scale worker=3
-            
-            # 2. Reiniciamos ÚNICAMENTE el contenedor de setup.
-            # Este leerá el nuevo modelo del volumen montado e inyectará los nodos atómicamente en Redis.
+
+            # 2. Construir nueva imagen SIN tocar contenedores en marcha
+            sudo docker compose build
+
+            # 3. Levantar servicios que falten, SIN recrear los que ya corren
+            sudo docker compose up -d --no-recreate --scale worker=3
+
+            # 4. Recargar solo el setup con el nuevo modelo
             sudo docker compose restart setup-redis
+
+            # 5. Esperar a que setup termine y verificar que no falló
+            sudo docker compose wait setup-redis
