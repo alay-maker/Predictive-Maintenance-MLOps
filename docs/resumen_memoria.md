@@ -8,13 +8,13 @@ Una planta de mecanizado industrial sufre paradas no planificadas debido a fallo
 1. Simula y procesa telemetría en tiempo real mediante un Productor IoT.
 2. Inyecta reglas de inferencia de un modelo de Machine Learning directamente en una base de datos en memoria (Redis).
 3. Evalúa los datos a través de *workers* escalables horizontalmente.
-4. Permite actualizaciones ágiles del modelo ("Despliegue Continuo con Interrupción Mínima") mediante CI/CD automatizado en Microsoft Azure, reduciendo la caída del servicio a escasos segundos.
+4. Permite actualizaciones del modelo en **Zero-Downtime real** mediante CI/CD automatizado en Microsoft Azure: los *workers* continúan procesando telemetría sin interrupción durante el despliegue.
 
 **Resultado obtenido:**
 - Arquitectura desacoplada capaz de procesar telemetría cada 0.5 segundos.
 - Pipeline CI/CD completamente automatizado en GitHub Actions con cobertura exigida del 70%.
 - Infraestructura desplegada en Azure mediante código (Terraform).
-- Capacidad de actualización de modelos sin interrupción del servicio.
+- Actualización de modelos con **Zero-Downtime verificado**: workers activos no se interrumpen durante el despliegue.
 
 ---
 
@@ -26,7 +26,7 @@ El sistema monitoriza una fresadora industrial. Los sensores recogen métricas c
 
 ### 2.2 Valor de negocio
 
-En el sector del mecanizado de precisión, una parada no planificada de una máquina CNC cuesta aproximadamente 5.000€ por hora (sumando lucro cesante, horas extra y piezas defectuosas). 
+En el sector del mecanizado de precisión, una parada no planificada de una máquina CNC cuesta aproximadamente 5.000€ por hora (sumando lucro cesante, horas extra y piezas defectuosas).
 - **Coste de fallo reactivo:** Una rotura de husillo suele implicar 8 horas de parada = ~40.000€.
 - **Mantenimiento predictivo:** Detectar la anomalía permite programar el cambio de pieza en un turno inactivo, reduciendo el tiempo de intervención a 1 hora = ~5.000€.
 - **Ahorro potencial:** ~35.000€ por incidente evitado.
@@ -51,8 +51,10 @@ GITHUB REPOSITORY
       │                                   Cobertura ≥ 70%
       │
       └── CD Pipeline (Si CI = OK)──────► SSH a Máquina Virtual en Azure
-                                          Copia de archivos (scp)
-                                          docker compose down / up --build
+                                          Copia atómica de archivos (rsync)
+                                          docker compose build (sin detener workers)
+                                          docker compose up --no-recreate
+                                          docker compose restart setup-redis
 
 MICROSOFT AZURE (Máquina Virtual Ubuntu)
       │
@@ -63,7 +65,7 @@ MICROSOFT AZURE (Máquina Virtual Ubuntu)
       │
       ├── productor (Contenedor) ───────► (Envía telemetría a Redis cada 0.5s)
       │
-      └── worker [Escalable] (Contenedores) 
+      └── worker [Escalable] (Contenedores) ← Sin interrupción durante despliegue
           (Lee telemetría, consulta modelo en Redis, emite alerta)
 ```
 
@@ -72,7 +74,7 @@ MICROSOFT AZURE (Máquina Virtual Ubuntu)
 | Componente | Tecnología | Por qué esta y no otra |
 |------------|-----------|------------------------|
 | Lenguaje | Python 3.11 | Estándar en ciencia de datos; librerías nativas robustas. |
-| Inferencia | Redis (Hashes) | Inferir directamente en base de datos en memoria es más rápido que cargar modelos pesados en cada *worker*. |
+| Inferencia | Redis (Hashes) | Inferir directamente en base de datos en memoria es más rápido que cargar modelos pesados en cada *worker*. Permite actualizar el modelo sin recompilar imágenes. |
 | Contenedores | Docker Compose V2 | Orquestación suficiente y ligera para este caso de uso, sin la sobrecarga operativa de Kubernetes. |
 | CI/CD | GitHub Actions | Integración nativa con el código y aprovisionamiento automático de runners Ubuntu. |
 | Cloud | Microsoft Azure | Requisito del proyecto; máquinas virtuales altamente disponibles y seguras. |
@@ -88,12 +90,12 @@ Si el *worker* tuviera el modelo embebido en su código, actualizar el modelo im
 ### 4.1 Pipeline de Datos e Inferencia
 
 El flujo de trabajo se divide en dos ciclos de vida independientes:
-1. **El modelo de Machine Learning:** Se exporta a un formato ligero (`tree_model.json`). El contenedor efímero `setup-redis` lee este archivo e inyecta los umbrales y nodos como *Hashes* en Redis.
-2. **El flujo de telemetría:** El `productor` simula sensores. El `worker` lee estos datos, cruza los valores con los nodos almacenados en Redis y determina si se dispara una alerta.
+1. **El modelo de Machine Learning:** Se exporta a un formato ligero (`tree_model.json`). El contenedor efímero `setup-redis` lee este archivo e inyecta los umbrales y nodos como *Hashes* en Redis usando un pipeline atómico.
+2. **El flujo de telemetría:** El `productor` simula sensores. El `worker` lee estos datos, cruza los valores con los nodos almacenados en Redis y determina si se dispara una alerta. Si un nodo no se encuentra durante la actualización, el mensaje no se marca como procesado (`xack`) y permanece disponible para reintento — garantizando que no se pierde ningún dato.
 
 ### 4.2 Gate de Calidad (Quality Gate)
 
-El pipeline de GitHub Actions incluye un *Job* de testeo estricto. Si los tests unitarios no superan el 70% de cobertura, el *Job* finaliza con un error y bloquea inmediatamente el paso de despliegue en Azure (`needs: test`). Esto garantiza que nunca se despliega código no validado en el entorno de producción.
+El pipeline de GitHub Actions incluye un *Job* de testeo estricto con 8 tests unitarios. Si los tests no superan el 70% de cobertura, el *Job* finaliza con error y bloquea inmediatamente el paso de despliegue en Azure (`needs: test`). Esto garantiza que nunca se despliega código no validado en el entorno de producción.
 
 ---
 
@@ -103,9 +105,21 @@ El pipeline de GitHub Actions incluye un *Job* de testeo estricto. Si los tests 
 
 | Fase | Acción | Qué valida |
 |---------|---------|-------------|
-| CI (Tests) | `pytest tests/ --cov=src` | Verifica la lógica del productor, workers y configuración. Exige ≥ 70% de cobertura. |
-| Transferencia | `appleboy/scp-action` | Copia de forma segura solo los archivos esenciales, el modelo y el `.dockerignore` al servidor. |
-| CD (Deploy) | `appleboy/ssh-action` | Ejecuta los comandos de reconstrucción de infraestructura en caliente en Azure mediante SSH. |
+| CI (Tests) | `pytest tests/ --cov=src --cov-fail-under=70` | Verifica la lógica del productor, workers y configuración. Exige ≥ 70% de cobertura. |
+| Transferencia | `appleboy/scp-action` → directorio temporal | Copia los archivos esenciales a un directorio temporal para evitar lecturas en caliente. |
+| Swap atómico | `rsync -a tmp/ → producción/` | Reemplaza los archivos de forma atómica una vez la copia está completa. |
+| CD (Deploy) | `appleboy/ssh-action` | Construye la nueva imagen, levanta servicios faltantes sin recrear los activos, recarga solo `setup-redis`. |
+| Verificación | `docker compose wait setup-redis` | Confirma que el nuevo modelo se cargó correctamente antes de dar el despliegue por exitoso. |
+
+### 5.2 Estrategia Zero-Downtime
+
+El despliegue utiliza tres mecanismos combinados para garantizar que los *workers* activos nunca se interrumpen:
+
+1. **`--no-recreate`:** Docker Compose no toca los contenedores que ya están corriendo, aunque la imagen haya cambiado.
+2. **Separación de build y deploy:** `docker compose build` construye la nueva imagen sin afectar los contenedores en marcha. Solo los servicios nuevos o los reiniciados explícitamente usarán la imagen actualizada.
+3. **Reinicio selectivo:** Solo `setup-redis` se reinicia para recargar el modelo. El productor y los workers continúan sin interrupción.
+
+> **Nota sobre escalado:** El número de workers activos en producción se gestiona manualmente en la VM (`docker compose up -d --scale worker=N`). El pipeline de CI/CD no especifica un `--scale` fijo para no destruir workers adicionales que puedan estar corriendo.
 
 ---
 
@@ -138,7 +152,13 @@ La arquitectura fue refactorizada eliminando el parámetro estático `container_
 sudo docker compose up -d --scale worker=5
 ```
 
-### 7.2 Persistencia
+### 7.2 Resiliencia del Worker
+Los *workers* incluyen protección ante fallos transitorios durante la actualización del modelo:
+- Si `hgetall` devuelve un nodo vacío (Redis en proceso de actualización), el mensaje **no se marca como procesado** y queda disponible para otro worker — evitando pérdida de datos.
+- Los errores de procesamiento por mensaje están aislados mediante `try/except` individual: un fallo en un mensaje no detiene el worker.
+- Los nombres de streams y grupos de consumidores son configurables vía variables de entorno (`STREAM_NAME`, `GROUP_NAME`, `ALERT_STREAM`).
+
+### 7.3 Persistencia
 El servicio `redis-db` incluye un mapeo de volúmenes (`redis_data:/data`). Si el contenedor de la base de datos se reinicia o sufre un crasheo, el modelo y el historial de telemetría no se pierden.
 
 ---
@@ -149,15 +169,21 @@ El servicio `redis-db` incluye un mapeo de volúmenes (`redis_data:/data`). Si e
 
 El proyecto se gestionó en base a 3 Sprints. Se empleó un tablero Kanban en GitHub Projects para seguir el flujo de las Historias de Usuario (US), priorizadas en P0 (Críticas) y P1/P2.
 
-### 8.2 Lección aprendida más importante: Del "Zero-Downtime" a la "Interrupción Mínima"
+### 8.2 Evolución técnica: Del "Despliegue con Reinicio" al "Zero-Downtime Real"
 
 > "La teoría de microservicios promete Zero-Downtime, pero la orquestación en la práctica tiene sus propias reglas."
 
-Durante el Sprint 3, nuestro objetivo teórico era lograr un *Zero-Downtime estricto* al actualizar el modelo predictivo. Sin embargo, observamos que, al subir un nuevo modelo, Docker destruía todos los *workers* (`exited with code 137`), provocando pérdida temporal de datos IoT.
+Durante el Sprint 3, identificamos que al subir un nuevo modelo, Docker destruía todos los *workers* (`exited with code 137`), provocando pérdida temporal de datos IoT.
 
-**El problema original:** En el `docker-compose.yml`, los *workers* tenían la instrucción `depends_on: setup-redis`. Al actualizar el modelo, Docker recreaba el `setup-redis` y, por "efecto dominó", mataba y recreaba a todos los *workers*.
+**El problema original:** Los *workers* tenían `depends_on: setup-redis`. Al actualizar el modelo, Docker recreaba `setup-redis` y, por efecto dominó, reiniciaba todos los *workers*. Además, el flag `--build` en el comando de deploy forzaba la recreación de todos los contenedores al detectar un cambio de imagen.
 
-**La adaptación técnica:** Se modificó la arquitectura para que los *workers* dependan únicamente de `redis-db`. Aunque esto no eliminó al 100% el micro-corte (debido a cómo Docker Compose V2 reconstruye los enlaces de red al aplicar cambios en los volúmenes), pasamos de un fallo generalizado de la arquitectura a un **Despliegue Continuo con Interrupción Mínima**. Aprendimos a gestionar las expectativas técnicas: un reinicio de escasos segundos es completamente aceptable a nivel de negocio y mucho más estable que mantener dependencias cruzadas frágiles.
+**La solución implementada** combinó varios cambios coordinados:
+- Los *workers* se desvincularon de `setup-redis` y dependen únicamente de `redis-db`.
+- Se separó `docker compose build` de `docker compose up --no-recreate`, impidiendo que Docker toque contenedores activos aunque la imagen cambie.
+- Se implementó copia atómica de archivos vía directorio temporal + `rsync`, evitando que los *workers* lean archivos a mitad de escritura.
+- Se añadió lógica de `procesado = False` en el worker para no hacer `xack` si el modelo estaba en transición, garantizando que ningún mensaje se pierde.
+
+**Resultado verificado:** Workers en marcha procesando telemetría de forma continua durante un despliegue completo en Azure, sin ninguna línea de reinicio en los logs.
 
 ---
 
@@ -165,7 +191,7 @@ Durante el Sprint 3, nuestro objetivo teórico era lograr un *Zero-Downtime estr
 
 ### 9.1 Conclusiones
 
-1. **Desacoplamiento efectivo:** Mantener las reglas del modelo separadas del código de ejecución (workers) es vital. Aunque un *Zero-Downtime* estricto requiere orquestadores más complejos (como Kubernetes), hemos demostrado que con Docker Compose se puede lograr un despliegue continuo altamente ágil y con interrupciones mínimas de apenas segundos.
+1. **Zero-Downtime real con Docker Compose:** Mediante la combinación de `--no-recreate`, separación del ciclo de build/deploy, swap atómico de archivos y lógica de resiliencia en el worker, se logró un despliegue continuo sin interrupción del servicio, sin necesidad de orquestadores complejos como Kubernetes.
 2. **IaC y CI/CD son innegociables:** El uso de Terraform y GitHub Actions elimina el error humano en los despliegues, garantizando que el entorno de desarrollo sea idéntico al de producción.
 3. **Mantenimiento Predictivo Real:** Procesar datos localizados en memoria (Redis) permite unas latencias ínfimas, un requisito imprescindible en entornos de manufactura de alta velocidad (Edge Computing).
 
@@ -173,14 +199,14 @@ Durante el Sprint 3, nuestro objetivo teórico era lograr un *Zero-Downtime estr
 
 - **Dashboard Visual:** Implementar Grafana o Streamlit para ofrecer visualización en tiempo real de la telemetría y las alertas a los operarios de planta.
 - **Detección de Data Drift:** Implementar herramientas como Evidently AI para alertar cuando los patrones de vibración de la fresadora cambien debido al desgaste físico y requieran un reentrenamiento del modelo.
-- **Migración a Kubernetes:** Para entornos multi-planta, sustituir Docker Compose por AKS (Azure Kubernetes Service) para orquestación avanzada y auto-escalado.
+- **Migración a Kubernetes:** Para entornos multi-planta, sustituir Docker Compose por AKS (Azure Kubernetes Service) para orquestación avanzada y auto-escalado nativo.
 
 ---
 
 ## 10. Bibliografía
 
 - Kim, G., Humble, J., Debois, P. y Willis, J. (2021). *The DevOps Handbook*. IT Revolution Press.
-- Documentación oficial de Docker Compose V2: https://docs.docker.com/compose/
-- Documentación oficial de GitHub Actions: https://docs.github.com/es/actions
-- Documentación oficial de Terraform AzureRM Provider: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
-- Arquitecturas de Mantenimiento Predictivo en Azure: https://learn.microsoft.com/es-es/azure/architecture/industries/manufacturing/predictive-maintenance-overview
+- Documentación oficial de Docker Compose V2: [https://docs.docker.com/compose/](https://docs.docker.com/compose/)
+- Documentación oficial de GitHub Actions: [https://docs.github.com/es/actions](https://docs.github.com/es/actions)
+- Documentación oficial de Terraform AzureRM Provider: [https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+- Arquitecturas de Mantenimiento Predictivo en Azure: [https://learn.microsoft.com/es-es/azure/architecture/industries/manufacturing/predictive-maintenance-overview](https://learn.microsoft.com/es-es/azure/architecture/industries/manufacturing/predictive-maintenance-overview)
