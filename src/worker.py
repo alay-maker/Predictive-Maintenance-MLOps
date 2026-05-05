@@ -4,10 +4,13 @@ import sys
 import json
 import os
 
+
+
 def main():
     host_redis = os.getenv('REDIS_HOST', 'localhost')
-    NOMBRE_STREAM = 'input_stream'
-    GRUPO_TRABAJO = 'equipo_triaje'
+    NOMBRE_STREAM  = os.getenv('STREAM_NAME',  'input_stream')
+    GRUPO_TRABAJO  = os.getenv('GROUP_NAME',   'equipo_triaje')
+    STREAM_ALERTAS = os.getenv('ALERT_STREAM', 'registro_alertas')
 
     if len(sys.argv) > 1:
         NOMBRE_WORKER = sys.argv[1]
@@ -47,32 +50,39 @@ def main():
             for stream_name, mensajes in respuesta:
                 for id_mensaje, datos in mensajes:
                     nodo_actual = "nodo:0" 
-                    
-                    while True:
-                        info_nodo = cliente_redis.hgetall(nodo_actual)
-                        if info_nodo['tipo'] == 'hoja':
-                            resultado = info_nodo.get('resultado')
-                            if resultado == 'Failure':
-                                alerta = {
-                                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                                    "id_mensaje_origen": id_mensaje,
-                                    "datos_sensor": datos
-                                }
-                                cliente_redis.lpush("registro_alertas", json.dumps(alerta))
-                                print(f"[{NOMBRE_WORKER}] ¡ALERTA CRÍTICA! Fallo detectado. (ID: {id_mensaje})")
-                            break 
-                            
-                        elif info_nodo['tipo'] == 'decision':
-                            variable = info_nodo['variable']
-                            umbral = float(info_nodo['umbral'])
-                            valor_sensor = float(datos.get(variable, 0))
-                            
-                            if valor_sensor <= umbral:
-                                nodo_actual = info_nodo['hijo_menor_igual']
-                            else:
-                                nodo_actual = info_nodo['hijo_mayor']
-                    
-                    cliente_redis.xack(NOMBRE_STREAM, GRUPO_TRABAJO, id_mensaje)
+                    try:
+                        procesado = False
+                        while True:
+                            info_nodo = cliente_redis.hgetall(nodo_actual)
+                            if not info_nodo:
+                                print(f"[{NOMBRE_WORKER}] WARN: Nodo '{nodo_actual}' no encontrado. Modelo en actualización?")
+                                break
+                            if info_nodo['tipo'] == 'hoja':
+                                resultado = info_nodo.get('resultado')
+                                if resultado == 'Failure':
+                                    alerta = {
+                                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "id_mensaje_origen": id_mensaje,
+                                        "datos_sensor": datos
+                                    }
+                                    cliente_redis.lpush(STREAM_ALERTAS, json.dumps(alerta))
+                                    print(f"[{NOMBRE_WORKER}] ¡ALERTA CRÍTICA! Fallo detectado. (ID: {id_mensaje})")
+                                procesado = True
+                                break 
+                                
+                            elif info_nodo['tipo'] == 'decision':
+                                variable = info_nodo['variable']
+                                umbral = float(info_nodo['umbral'])
+                                valor_sensor = float(datos.get(variable, 0))
+                                
+                                if valor_sensor <= umbral:
+                                    nodo_actual = info_nodo['hijo_menor_igual']
+                                else:
+                                    nodo_actual = info_nodo['hijo_mayor']
+                        if procesado:
+                            cliente_redis.xack(NOMBRE_STREAM, GRUPO_TRABAJO, id_mensaje)
+                    except Exception as e:
+                        print(f"[{NOMBRE_WORKER}] ERROR procesando mensaje {id_mensaje}: {e}")
 
     except redis.ConnectionError:
         print(f"[{NOMBRE_WORKER} ERROR]: No se pudo conectar a Redis.")
