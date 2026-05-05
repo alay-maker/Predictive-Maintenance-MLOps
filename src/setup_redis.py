@@ -44,4 +44,6 @@ def preparar_base_datos():
 
 # Esto hace que el script se ejecute automáticamente cuando Docker lo llama
 if __name__ == "__main__":
-    preparar_base_datos()
+    exito = preparar_base_datos()
+    if not exito:
+        sys.exit(1)
