@@ -1,6 +1,7 @@
 import redis
 import json
 import os
+import sys
 
 # --- AJUSTES PARA DOCKER ---
 # Lee la variable de entorno que inyecta docker-compose
