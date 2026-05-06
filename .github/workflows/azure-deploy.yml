@@ -3,10 +3,10 @@ name: MLOps CI/CD Pipeline
 on:
   push:
     # Se activa en ambas ramas para facilitar pruebas y entrega final
-    branches: [ "ajustes_azure", "main", "test-deploy", "zero-downtime" ]
+    branches: [ "ajustes_azure", "main", "test-deploy" ]
   pull_request:
-    branches: [ "main", "zero-downtime" ]
-    workflow_dispatch:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -34,8 +34,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    # Se despliega si estamos en 'ajustes_azure' o en 'main' o 'test-deploy' tras un push
-    if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test-deploy' || github.ref == 'refs/heads/zero-downtime') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test-deploy')
     
     steps:
       - name: Descargar código
@@ -50,7 +49,7 @@ jobs:
           source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt,.dockerignore"
           target: "/home/adminuser/predictive-maintenance-tmp"
 
-      - name: Desplegar Microservicios en Azure (Zero-Downtime)
+      - name: Desplegar Microservicios en Azure (Interrupción Mínima)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_IP }}
