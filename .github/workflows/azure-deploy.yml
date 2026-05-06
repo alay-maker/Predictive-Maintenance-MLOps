@@ -2,7 +2,6 @@ name: MLOps CI/CD Pipeline
 
 on:
   push:
-    # Se activa en ambas ramas para facilitar pruebas y entrega final
     branches: [ "ajustes_azure", "main", "test-deploy" ]
   pull_request:
     branches: [ "main" ]
@@ -29,13 +28,17 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          pytest tests/ --cov=src --cov-fail-under=70 
+          pytest tests/ --cov=src --cov-fail-under=70
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: (github.ref == 'refs/heads/ajustes_azure' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test-deploy')
-    
+    if: >
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/ajustes_azure' ||
+      github.ref == 'refs/heads/test-deploy' ||
+      github.event_name == 'workflow_dispatch'
+
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
@@ -49,27 +52,22 @@ jobs:
           source: "src/,data/,models/,docker-compose.yml,Dockerfile,requirements.txt,.dockerignore"
           target: "/home/adminuser/predictive-maintenance-tmp"
 
-      - name: Desplegar Microservicios en Azure (Interrupción Mínima)
+      - name: Desplegar Microservicios en Azure (Zero-Downtime)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: adminuser
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
-            # 1. Swap atómico de archivos (evita lecturas en caliente)
             rsync -a /home/adminuser/predictive-maintenance-tmp/ \
                      /home/adminuser/predictive-maintenance/
 
             cd /home/adminuser/predictive-maintenance
 
-            # 2. Construir nueva imagen SIN tocar contenedores en marcha
             sudo docker compose build
 
-            # 3. Levantar servicios que falten, SIN recrear los que ya corren
-            sudo docker compose up -d --no-recreate --scale worker=3
+            sudo docker compose up -d --no-recreate
 
-            # 4. Recargar solo el setup con el nuevo modelo
             sudo docker compose restart setup-redis
 
-            # 5. Esperar a que setup termine y verificar que no falló
             sudo docker compose wait setup-redis
